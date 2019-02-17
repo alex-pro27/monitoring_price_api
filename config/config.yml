@@ -1,0 +1,12 @@
+databases:
+  default:
+    DATABASE: go_monitoring_price_api
+    HOST: 127.0.0.1
+    PORT: 5432
+    USER: alex
+    PASSWORD: 123123
+
+system:
+  DEBUG: true
+  SERVER: 127.0.0.1:8888
+
