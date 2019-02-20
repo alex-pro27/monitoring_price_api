@@ -6,6 +6,7 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/config"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/jinzhu/gorm"
+
 )
 
 func ConnectDefaultDB() *gorm.DB {
@@ -20,6 +21,10 @@ func ConnectDefaultDB() *gorm.DB {
 	)
 	db, err := gorm.Open("postgres", params)
 	common.HandlerError(err)
+	if config.Config.System.Debug {
+		db.LogMode(true)
+	}
+
 	return db
 }
 

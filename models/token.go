@@ -14,12 +14,12 @@ import (
 type Token struct {
 	gorm.Model
 	Key 		string `gorm:"size:32;unique_index;not null" json:"token_key"`
-	UserRefer 	uint
+	UserID 	uint
 }
 
 func (token *Token) Create(db *gorm.DB, user *User) {
 	token.Key = token.generate()
-	token.UserRefer = user.ID
+	token.UserID = user.ID
 	db.Create(&token)
 	if db.NewRecord(token) {
 		token.Create(db, user)

@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func JSONResponse(w http.ResponseWriter, data H) {
+func JSONResponse(w http.ResponseWriter, data interface{}) {
 	body, err := json.MarshalIndent(data, "", "	")
 	if err != nil {
 		log.Printf("Failed to encode a JSON response: %v", err)
@@ -23,15 +23,15 @@ func JSONResponse(w http.ResponseWriter, data H) {
 	}
 }
 
+func Error404(w http.ResponseWriter)  {
+	w.WriteHeader(http.StatusNotFound)
+	_, err := w.Write([]byte("Page not found"))
+	HandlerError(err)
+}
+
 func ErrorResponse(w http.ResponseWriter, message string) {
 	JSONResponse(w, H{
 		"error": true,
 		"message": message,
 	})
-}
-
-func HandlerError(err error)  {
-	if err != nil {
-		log.Fatal(err)
-	}
 }

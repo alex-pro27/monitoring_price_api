@@ -1,5 +1,7 @@
 package models
 
+import "github.com/jinzhu/gorm"
+
 type Access int
 
 const (
@@ -10,6 +12,7 @@ const (
 )
 
 type Permission struct {
-	View string
-	Access Access
+	gorm.Model
+	View 	string
+	Access 	Access `gorm:"default:2"`
 }
