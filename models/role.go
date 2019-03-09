@@ -7,8 +7,8 @@ import (
 
 type Role struct {
 	gorm.Model
-	Name string 				`gorm:"size:255;not null" json:"name"`
-	Permissions []Permission	`gorm:"many2many:role_permissions;"`
+	Name        string       `gorm:"size:255;not null" json:"name"`
+	Permissions []Permission `gorm:"many2many:role_permissions;"`
 }
 
 func (role Role) Serializer() common.H {

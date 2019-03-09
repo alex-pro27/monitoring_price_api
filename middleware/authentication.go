@@ -1,4 +1,4 @@
-package handlers
+package middleware
 
 import (
 	"encoding/base64"
@@ -10,9 +10,11 @@ import (
 	"strings"
 )
 
-
-func BasicAuth(handler common.HttpHandler) common.HttpHandler {
-	return func (w http.ResponseWriter, r *http.Request) {
+/**
+Basic Авторизация
+*/
+func BasicAuthMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if auth != "" {
 			authData := strings.Split(auth, " ")
@@ -25,7 +27,7 @@ func BasicAuth(handler common.HttpHandler) common.HttpHandler {
 					user.GetByUserName(db, logpassw[0])
 					if user.CheckPassword(logpassw[1]) {
 						context.Set(r, "user", &user)
-						handler(w, r)
+						h.ServeHTTP(w, r)
 						return
 					}
 				}
@@ -35,21 +37,24 @@ func BasicAuth(handler common.HttpHandler) common.HttpHandler {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Not authorized, forbidden"))
 		common.HandlerError(err)
-	}
+	})
 }
 
-func TokenAuth(handler common.HttpHandler) common.HttpHandler {
-	return func (w http.ResponseWriter, r *http.Request) {
+/**
+Авторизация Токену
+*/
+func TokenAuthMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if auth != "" {
 			authData := strings.Split(auth, " ")
 			if len(authData) == 2 && authData[0] == "Token" {
 				user := models.User{}
-				db := context.Get(r,"DB").(*gorm.DB)
+				db := context.Get(r, "DB").(*gorm.DB)
 				user.GetUserByToken(db, authData[1])
 				if user.ID > 0 {
 					context.Set(r, "user", &user)
-					handler(w, r)
+					h.ServeHTTP(w, r)
 					return
 				}
 			}
@@ -57,7 +62,5 @@ func TokenAuth(handler common.HttpHandler) common.HttpHandler {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Invalid token"))
 		common.HandlerError(err)
-	}
+	})
 }
-
-

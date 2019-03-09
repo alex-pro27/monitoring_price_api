@@ -6,7 +6,6 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/config"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/jinzhu/gorm"
-
 )
 
 func ConnectDefaultDB() *gorm.DB {
@@ -38,8 +37,12 @@ func MigrateDefaultDB() {
 		models.Ware{},
 		models.WorkGroup{},
 		models.Regions{},
-		models.Rival{},
+		models.MonitoringShop{},
 		models.Token{},
+		models.Period{},
+		models.CompletedWare{},
+		models.MonitoringType{},
+		models.Photos{},
 	)
 	common.HandlerError(db.Close())
 }

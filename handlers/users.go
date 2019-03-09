@@ -11,7 +11,6 @@ import (
 	"strconv"
 )
 
-
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
@@ -27,14 +26,14 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	user := models.User{
-		FirstName: 	r.FormValue("first_name"),
-		LastName:  	r.FormValue("last_name"),
-		UserName:  	r.FormValue("username"),
-		Password:  	r.FormValue("password"),
-		Email:		r.FormValue("email"),
-		Phone:		r.FormValue("phone"),
+		FirstName: r.PostFormValue("first_name"),
+		LastName:  r.PostFormValue("last_name"),
+		UserName:  r.PostFormValue("username"),
+		Password:  r.PostFormValue("password"),
+		Email:     r.PostFormValue("email"),
+		Phone:     r.PostFormValue("phone"),
 	}
-	db := context.Get(r,"DB").(*gorm.DB)
+	db := context.Get(r, "DB").(*gorm.DB)
 	err := user.Create(db)
 	if err != nil {
 		ErrorResponse(w, err.Error())
@@ -44,13 +43,15 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	JSONResponse(w,  H{
+	// TODO
+	JSONResponse(w, H{
 		"message": "Update",
 	})
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	JSONResponse(w,  H{
+	// TODO
+	JSONResponse(w, H{
 		"message": "Delete",
 	})
 }
@@ -60,69 +61,53 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		page = 1
 	}
-	user := context.Get(r, "user").(*models.User)
-	fmt.Println(user.LastName, user.FirstName, user.Token.Key) // FIXME
+	regionID, _ := strconv.Atoi(r.FormValue("region"))
+	workGroupsID, _ := strconv.Atoi(r.FormValue("work_groups"))
 
-	db := context.Get(r,"DB").(*gorm.DB)
+	user := context.Get(r, "user")
+
+	if user != nil {
+		user := user.(*models.User)
+		fmt.Println(user.LastName, user.FirstName, user.Token.Key) // FIXME
+	}
+
+	db := context.Get(r, "DB").(*gorm.DB)
+	qs := db
 	var users []models.User
-	qs := db.Order("id")
-	data := Paginate(&users, qs, page, 100)
-	var idx []uint
-	var results []H
 
-	if len(data) == 0 {
-		Error404(w)
-		return
-	}
-	results = data["result"].([]H)
-
-	for _, item := range results {
-		idx = append(idx, item["id"].(uint))
-	}
-	var tokens []models.Token
-	db.Where("user_id in (?)", idx).Find(&tokens)
-
-	var usersRoles []struct{
-		RoleID uint
-		UserID uint
+	if workGroupsID != 0 && regionID == 0 {
+		qs = qs.Joins(
+			"INNER JOIN user_workgroup uw ON users.id = uw.user_id",
+		).Where(
+			"uw.work_group_id = ?", workGroupsID,
+		)
 	}
 
-	db.Table(
-		"user_role",
-	).Where(
-		"user_id in (?)", idx,
-	).Scan(&usersRoles)
-
-	var rolesIDX []uint
-	for _, item := range usersRoles{
-		rolesIDX = append(rolesIDX, item.RoleID)
-	}
-
-	rolesIDX = Unique(rolesIDX)
-
-	var roles []models.Role
-
-	if len(rolesIDX) > 0 {
-		db.Where("id in (?)", rolesIDX).Find(&roles)
-	}
-
-	for _, item := range results {
-		inner:
-		for i, token := range tokens {
-			if item["id"] == token.UserID {
-				tokens = append(tokens[:i], tokens[i+1:]...)
-				item["token"] = token.Key
-				break inner
-			}
-		}
-		for _, role	:= range roles {
-			for _, ur := range usersRoles {
-				if role.ID == ur.RoleID && ur.UserID == item["id"] {
-					item["roles"] = append(item["roles"].([]H), role.Serializer())
-				}
-			}
+	if regionID != 0 {
+		qs = qs.Joins(
+			"INNER JOIN user_workgroup uw ON users.id = uw.user_id",
+		).Joins(
+			"INNER JOIN workgroup_regions wr ON uw.work_group_id = wr.work_group_id",
+		).Where(
+			"wr.regions_id = ?", regionID,
+		)
+		if workGroupsID != 0 {
+			qs = qs.Where("uw.work_group_id = ?", workGroupsID)
 		}
 	}
+	qs = qs.Order("id")
+
+	data := Paginate(&users, qs, page, 100, []string{
+		"Token",
+		"Roles",
+		"WorkGroup",
+		"WorkGroup.Regions",
+	})
+
+	//if len(data) == 0 {
+	//	Error404(w)
+	//	return
+	//}
 
 	JSONResponse(w, data)
 }

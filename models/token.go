@@ -13,17 +13,21 @@ import (
 
 type Token struct {
 	gorm.Model
-	Key 		string `gorm:"size:32;unique_index;not null" json:"token_key"`
-	UserID 	uint
+	Key string `gorm:"size:32;unique_index;not null" json:"token_key"`
 }
 
 func (token *Token) Create(db *gorm.DB, user *User) {
-	token.Key = token.generate()
-	token.UserID = user.ID
-	db.Create(&token)
-	if db.NewRecord(token) {
+	key := token.generate()
+	t := Token{}
+	db.First(&t, "key = ?", key)
+	if t.ID != 0 {
 		token.Create(db, user)
+	} else {
+		token.Key = key
+		db.Create(&token)
+		db.NewRecord(token)
 	}
+
 }
 
 func (token Token) generate() string {
