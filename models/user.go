@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"github.com/jinzhu/gorm"
 )
 
@@ -21,11 +22,13 @@ type User struct {
 	Token     Token
 }
 
-func (user *User) GetById(db *gorm.DB, id int) {
+func (user *User) GetById(db *gorm.DB, id uint) {
 	db.Preload(
 		"Token",
 	).Preload(
 		"WorkGroup",
+	).Preload(
+		"WorkGroup.Regions",
 	).Preload(
 		"Roles",
 	).First(
@@ -38,6 +41,8 @@ func (user *User) GetByUserName(db *gorm.DB, username string) {
 		"Token",
 	).Preload(
 		"WorkGroup",
+	).Preload(
+		"WorkGroup.Regions",
 	).Preload(
 		"Roles",
 	).First(
@@ -52,6 +57,8 @@ func (user *User) GetUserByToken(db *gorm.DB, token string) {
 			"Roles",
 		).Preload(
 			"WorkGroup",
+		).Preload(
+			"WorkGroup.Regions",
 		).First(
 			&user, "active = true AND token_id = ?", user.Token.ID,
 		)
@@ -59,7 +66,7 @@ func (user *User) GetUserByToken(db *gorm.DB, token string) {
 }
 
 func (user User) CheckPassword(password string) bool {
-	return common.CompareHashAndPassword(user.Password, password)
+	return helpers.CompareHashAndPassword(user.Password, password)
 }
 
 func (user *User) Create(db *gorm.DB) error {
@@ -81,7 +88,7 @@ func (user *User) Create(db *gorm.DB) error {
 }
 
 func (user *User) HashPassword() {
-	user.Password = common.HashAndSalt(user.Password)
+	user.Password = helpers.HashAndSalt(user.Password)
 }
 
 func (user *User) NewToken(db *gorm.DB) {

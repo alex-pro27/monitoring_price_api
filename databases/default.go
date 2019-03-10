@@ -2,8 +2,8 @@ package databases
 
 import (
 	"fmt"
-	"github.com/alex-pro27/monitoring_price_api/common"
 	"github.com/alex-pro27/monitoring_price_api/config"
+	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/jinzhu/gorm"
 )
@@ -19,7 +19,7 @@ func ConnectDefaultDB() *gorm.DB {
 		defaultDb.Password,
 	)
 	db, err := gorm.Open("postgres", params)
-	common.HandlerError(err)
+	helpers.HandlerError(err)
 	if config.Config.System.Debug {
 		db.LogMode(true)
 	}
@@ -44,5 +44,5 @@ func MigrateDefaultDB() {
 		models.MonitoringType{},
 		models.Photos{},
 	)
-	common.HandlerError(db.Close())
+	helpers.HandlerError(db.Close())
 }

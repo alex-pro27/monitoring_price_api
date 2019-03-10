@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	. "github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/common"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
@@ -9,7 +9,7 @@ import (
 )
 
 /**
-Получить все доступный сегменты
+Получить все доступные сегменты
 */
 func GetSegments(w http.ResponseWriter, r *http.Request) {
 	user := context.Get(r, "user").(*models.User)
@@ -34,7 +34,7 @@ func GetSegments(w http.ResponseWriter, r *http.Request) {
 		&segments,
 	)
 
-	var responseData []H
+	var responseData []common.H
 
 	for _, segment := range segments {
 		responseData = append(responseData, segment.Serializer())

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	. "github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/common"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
@@ -30,7 +30,7 @@ func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
 		&monitoringShops, "wm.work_group_id IN (?)", workGroupsIDX,
 	)
 
-	var responseData []H
+	var responseData []common.H
 
 	for _, ms := range monitoringShops {
 		responseData = append(responseData, ms.Serializer())

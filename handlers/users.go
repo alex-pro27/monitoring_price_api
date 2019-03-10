@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	. "github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/common"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -16,7 +16,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(vars["id"])
 	db := context.Get(r, "DB").(*gorm.DB)
 	user := models.User{}
-	user.GetById(db, id)
+	user.GetById(db, uint(id))
 	if user.ID == 0 {
 		ErrorResponse(w, "пользователь не найден")
 	} else {
@@ -44,14 +44,14 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	// TODO
-	JSONResponse(w, H{
+	JSONResponse(w, common.H{
 		"message": "Update",
 	})
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// TODO
-	JSONResponse(w, H{
+	JSONResponse(w, common.H{
 		"message": "Delete",
 	})
 }
@@ -104,10 +104,10 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 		"WorkGroup.Regions",
 	})
 
-	//if len(data) == 0 {
-	//	Error404(w)
-	//	return
-	//}
+	if len(data) == 0 {
+		Error404(w)
+		return
+	}
 
 	JSONResponse(w, data)
 }

@@ -1,7 +1,9 @@
-package common
+package handlers
 
 import (
 	"encoding/json"
+	"github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"log"
 	"net/http"
 )
@@ -23,15 +25,21 @@ func JSONResponse(w http.ResponseWriter, data interface{}) {
 	}
 }
 
-func Error404(w http.ResponseWriter)  {
+func Error404(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	_, err := w.Write([]byte("Page not found"))
-	HandlerError(err)
+	helpers.HandlerError(err)
+}
+
+func Forrbidden(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusForbidden)
+	_, err := w.Write([]byte("Forbidden"))
+	helpers.HandlerError(err)
 }
 
 func ErrorResponse(w http.ResponseWriter, message string) {
-	JSONResponse(w, H{
-		"error": true,
+	JSONResponse(w, common.H{
+		"error":   true,
 		"message": message,
 	})
 }

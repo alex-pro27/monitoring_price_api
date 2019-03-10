@@ -1,4 +1,4 @@
-package common
+package helpers
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func HandlerError(err error)  {
+func HandlerError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func WatchFile(isChanged chan bool, filePath string) {
 	defer fmt.Println("exit watch file")
 	initialStat, err := os.Stat(filePath)
 	HandlerError(err)
-	go func () {
+	go func() {
 		for {
 			stat, err := os.Stat(filePath)
 			HandlerError(err)
@@ -46,7 +46,7 @@ func HashAndSalt(password string) string {
 	return string(hash)
 }
 
-func CompareHashAndPassword(hashedPassword string, password string) bool  {
+func CompareHashAndPassword(hashedPassword string, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
 }
@@ -57,7 +57,7 @@ func IndexOf(element interface{}, data []interface{}) int {
 			return k
 		}
 	}
-	return -1    //not found.
+	return -1 //not found.
 }
 
 func Unique(intSlice []uint) []uint {

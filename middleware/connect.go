@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"github.com/alex-pro27/monitoring_price_api/common"
 	"github.com/alex-pro27/monitoring_price_api/databases"
+	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"github.com/gorilla/context"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"log"
@@ -15,6 +15,6 @@ func DefaultDBMiddleware(h http.Handler) http.Handler {
 		db := databases.ConnectDefaultDB()
 		context.Set(r, "DB", db)
 		h.ServeHTTP(w, r)
-		defer common.HandlerError(db.Close())
+		defer helpers.HandlerError(db.Close())
 	})
 }
