@@ -10,6 +10,7 @@ system:
   DEBUG:        true
   SERVER:       127.0.0.1:8888
   SECRET_KEY:   1LF1u'>_pngZp))R|{bQX5&qYV_bcLx3ii&z;a7,;&,2"FeOgM)lvL)yY%>Hpv
+  LOG_PATH:     /var/log/monitoring_price.log
 
 session:
   KEY:  veHH1VVTeOUkMgubz28kHt5jabRpk0F8

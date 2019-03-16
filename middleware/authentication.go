@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"encoding/base64"
-	"github.com/alex-pro27/monitoring_price_api/helpers"
+	"fmt"
+	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
+	"github.com/alex-pro27/monitoring_price_api/utils"
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/jinzhu/gorm"
@@ -23,9 +25,9 @@ func BasicAuthMiddleware(h http.Handler) http.Handler {
 				data, err := base64.StdEncoding.DecodeString(authData[1])
 				if err == nil {
 					logpassw := strings.Split(string(data), ":")
-					user := models.User{}
 					db := context.Get(r, "DB").(*gorm.DB)
-					user.GetByUserName(db, logpassw[0])
+					userManager := models.UserManager{db}
+					user := userManager.GetByUserName(logpassw[0])
 					if user.CheckPassword(logpassw[1]) {
 						context.Set(r, "user", &user)
 						h.ServeHTTP(w, r)
@@ -34,10 +36,13 @@ func BasicAuthMiddleware(h http.Handler) http.Handler {
 				}
 			}
 		}
+		logger.Logger.Warning(
+			fmt.Sprintf("Not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI),
+		)
 		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Not authorized, forbidden"))
-		helpers.HandlerError(err)
+		logger.HandleError(err)
 	})
 }
 
@@ -50,9 +55,9 @@ func TokenAuthMiddleware(h http.Handler) http.Handler {
 		if auth != "" {
 			authData := strings.Split(auth, " ")
 			if len(authData) == 2 && authData[0] == "Token" {
-				user := models.User{}
 				db := context.Get(r, "DB").(*gorm.DB)
-				user.GetUserByToken(db, authData[1])
+				userManager := models.UserManager{db}
+				user := userManager.GetUserByToken(authData[1])
 				if user.ID > 0 {
 					context.Set(r, "user", &user)
 					h.ServeHTTP(w, r)
@@ -60,9 +65,12 @@ func TokenAuthMiddleware(h http.Handler) http.Handler {
 				}
 			}
 		}
+		logger.Logger.Warning(
+			fmt.Sprintf("Invalid token: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI),
+		)
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Invalid token"))
-		helpers.HandlerError(err)
+		logger.HandleError(err)
 	})
 }
 
@@ -77,9 +85,9 @@ func SessionAuthMiddleware(h http.Handler) http.Handler {
 			session, _ := store.Get(r, "user")
 			userID := session.Values["user_id"]
 			if userID != nil {
-				user := models.User{}
 				db := context.Get(r, "DB").(*gorm.DB)
-				user.GetById(db, userID.(uint))
+				userManager := models.UserManager{db}
+				user := userManager.GetById(userID.(uint))
 				if user.ID != 0 {
 					context.Set(r, "user", &user)
 					h.ServeHTTP(w, r)
@@ -87,8 +95,11 @@ func SessionAuthMiddleware(h http.Handler) http.Handler {
 				}
 			}
 		}
+		logger.Logger.Warning(
+			fmt.Sprintf("Session, not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI),
+		)
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Not authorized, forbidden"))
-		helpers.HandlerError(err)
+		logger.HandleError(err)
 	})
 }

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
 
@@ -11,11 +11,11 @@ import (
 type Regions struct {
 	gorm.Model
 	Name       string      `gorm:"size:255"`
-	WorkGroups []WorkGroup `gorm:"many2many:workgroup_regions;"`
+	WorkGroups []WorkGroup `gorm:"many2many:work_groups_regions;"`
 }
 
-func (region Regions) Serializer() common.H {
-	return common.H{
+func (region Regions) Serializer() types.H {
+	return types.H{
 		"id":   region.ID,
 		"name": region.Name,
 	}

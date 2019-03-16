@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -26,6 +25,7 @@ type TypeConfig struct {
 		SecretKey string `yaml:"SECRET_KEY"`
 		Debug     bool   `yaml:"DEBUG"`
 		Server    string `yaml:"SERVER"`
+		LogPath   string `yaml:"LOG_PATH"`
 	}
 
 	Session struct {
@@ -55,8 +55,6 @@ type TypeConfig struct {
 var Config *TypeConfig
 
 func Load() {
-	data, err := ioutil.ReadFile(ConfPath)
-	helpers.HandlerError(err)
-	err = yaml.Unmarshal(data, &Config)
-	helpers.HandlerError(err)
+	data, _ := ioutil.ReadFile(ConfPath)
+	yaml.Unmarshal(data, &Config)
 }

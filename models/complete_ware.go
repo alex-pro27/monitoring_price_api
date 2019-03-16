@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+/**
+Промониторенный товар
+*/
 type CompletedWare struct {
 	gorm.Model
 	User             User

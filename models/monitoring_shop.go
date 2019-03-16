@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
 
@@ -30,20 +30,20 @@ type MonitoringShop struct {
 	/**
 	Группа мониторинга
 	*/
-	WorkGroup []WorkGroup `gorm:"many2many:workgroup_monitoringshops;"`
+	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;"`
 
 	/**
 	Сегменты
 	*/
-	Segments []Segment `gorm:"many2many:monitoringshops_segments;"`
+	Segments []Segment `gorm:"many2many:monitoring_shops_segments;"`
 }
 
-func (monitoringShop MonitoringShop) Serializer() common.H {
+func (monitoringShop MonitoringShop) Serializer() types.H {
 	var segmentIDX []uint
 	for _, segment := range monitoringShop.Segments {
 		segmentIDX = append(segmentIDX, segment.ID)
 	}
-	return common.H{
+	return types.H{
 		"id":            monitoringShop.ID,
 		"code":          monitoringShop.Code,
 		"name":          monitoringShop.Name,

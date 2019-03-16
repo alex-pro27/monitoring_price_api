@@ -13,6 +13,6 @@ const (
 
 type Permission struct {
 	gorm.Model
-	View   string `gorm:"size:255;not null"`
-	Access Access `gorm:"default:2"`
+	Views  []Views `gorm:"many2many:views_permissions;"`
+	Access Access  `gorm:"default:2"`
 }

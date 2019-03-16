@@ -1,9 +1,10 @@
-package handlers
+package admin
 
 import (
 	"fmt"
-	"github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/models"
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -15,43 +16,45 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 	db := context.Get(r, "DB").(*gorm.DB)
-	user := models.User{}
-	user.GetById(db, uint(id))
+	userManager := models.UserManager{db}
+	user := userManager.GetById(uint(id))
 	if user.ID == 0 {
-		ErrorResponse(w, "пользователь не найден")
+		common.ErrorResponse(w, "пользователь не найден")
 	} else {
-		JSONResponse(w, user.Serializer())
+		common.JSONResponse(w, user.Serializer())
 	}
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	user := models.User{
-		FirstName: r.PostFormValue("first_name"),
-		LastName:  r.PostFormValue("last_name"),
-		UserName:  r.PostFormValue("username"),
-		Password:  r.PostFormValue("password"),
-		Email:     r.PostFormValue("email"),
-		Phone:     r.PostFormValue("phone"),
-	}
 	db := context.Get(r, "DB").(*gorm.DB)
-	err := user.Create(db)
+	userManager := models.UserManager{db}
+	user, err := userManager.Create(
+		&models.User{
+			FirstName: r.PostFormValue("first_name"),
+			LastName:  r.PostFormValue("last_name"),
+			UserName:  r.PostFormValue("username"),
+			Password:  r.PostFormValue("password"),
+			Email:     r.PostFormValue("email"),
+			Phone:     r.PostFormValue("phone"),
+		},
+	)
 	if err != nil {
-		ErrorResponse(w, err.Error())
+		common.ErrorResponse(w, err.Error())
 	} else {
-		JSONResponse(w, user.Serializer())
+		common.JSONResponse(w, user.Serializer())
 	}
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	// TODO
-	JSONResponse(w, common.H{
+	common.JSONResponse(w, types.H{
 		"message": "Update",
 	})
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// TODO
-	JSONResponse(w, common.H{
+	common.JSONResponse(w, types.H{
 		"message": "Delete",
 	})
 }
@@ -77,7 +80,7 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 
 	if workGroupsID != 0 && regionID == 0 {
 		qs = qs.Joins(
-			"INNER JOIN user_workgroup uw ON users.id = uw.user_id",
+			"INNER JOIN users_work_groups uw ON users.id = uw.user_id",
 		).Where(
 			"uw.work_group_id = ?", workGroupsID,
 		)
@@ -85,9 +88,9 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 
 	if regionID != 0 {
 		qs = qs.Joins(
-			"INNER JOIN user_workgroup uw ON users.id = uw.user_id",
+			"INNER JOIN users_work_groups uw ON users.id = uw.user_id",
 		).Joins(
-			"INNER JOIN workgroup_regions wr ON uw.work_group_id = wr.work_group_id",
+			"INNER JOIN work_groups_regions wr ON uw.work_group_id = wr.work_group_id",
 		).Where(
 			"wr.regions_id = ?", regionID,
 		)
@@ -97,7 +100,7 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	qs = qs.Order("id")
 
-	data := Paginate(&users, qs, page, 100, []string{
+	data := common.Paginate(&users, qs, page, 100, []string{
 		"Token",
 		"Roles",
 		"WorkGroup",
@@ -105,9 +108,9 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if len(data) == 0 {
-		Error404(w)
+		common.Error404(w)
 		return
 	}
 
-	JSONResponse(w, data)
+	common.JSONResponse(w, data)
 }

@@ -1,15 +1,25 @@
-package handlers
+package common
 
 import (
 	"encoding/json"
-	"github.com/alex-pro27/monitoring_price_api/common"
-	"github.com/alex-pro27/monitoring_price_api/helpers"
+	"github.com/alex-pro27/monitoring_price_api/config"
+	"github.com/alex-pro27/monitoring_price_api/logger"
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"log"
 	"net/http"
 )
 
 func JSONResponse(w http.ResponseWriter, data interface{}) {
-	body, err := json.MarshalIndent(data, "", "	")
+	var (
+		body []byte
+		err  error
+	)
+	if config.Config.System.Debug {
+		body, err = json.MarshalIndent(data, "", "	")
+	} else {
+		body, err = json.Marshal(data)
+	}
+
 	if err != nil {
 		log.Printf("Failed to encode a JSON response: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -28,17 +38,17 @@ func JSONResponse(w http.ResponseWriter, data interface{}) {
 func Error404(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	_, err := w.Write([]byte("Page not found"))
-	helpers.HandlerError(err)
+	logger.HandleError(err)
 }
 
-func Forrbidden(w http.ResponseWriter) {
+func Forbidden(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusForbidden)
 	_, err := w.Write([]byte("Forbidden"))
-	helpers.HandlerError(err)
+	logger.HandleError(err)
 }
 
 func ErrorResponse(w http.ResponseWriter, message string) {
-	JSONResponse(w, common.H{
+	JSONResponse(w, types.H{
 		"error":   true,
 		"message": message,
 	})

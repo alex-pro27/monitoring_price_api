@@ -1,8 +1,9 @@
-package handlers
+package api
 
 import (
-	"github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/models"
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 Получить магазины для мониторинга(Конкуренты, маркетинг)
 */
 func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
+	// TODO Добавить фильтр по периодам
 	user := context.Get(r, "user").(*models.User)
 
 	var monitoringShops []models.MonitoringShop
@@ -25,16 +27,18 @@ func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
 	db.Preload(
 		"Segments",
 	).Joins(
-		"INNER JOIN workgroup_monitoringshops wm ON wm.monitoring_shop_id = monitoring_shops.id",
+		"INNER JOIN work_groups_monitoring_shops wm ON wm.monitoring_shop_id = monitoring_shops.id",
 	).Find(
 		&monitoringShops, "wm.work_group_id IN (?)", workGroupsIDX,
 	)
 
-	var responseData []common.H
+	var responseData []types.H
 
 	for _, ms := range monitoringShops {
-		responseData = append(responseData, ms.Serializer())
+		if len(ms.Segments) > 0 {
+			responseData = append(responseData, ms.Serializer())
+		}
 	}
 
-	JSONResponse(w, responseData)
+	common.JSONResponse(w, responseData)
 }

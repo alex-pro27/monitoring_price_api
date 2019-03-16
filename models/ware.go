@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/alex-pro27/monitoring_price_api/common"
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
 
@@ -15,8 +15,8 @@ type Ware struct {
 	Active      bool `gorm:"default:true"`
 }
 
-func (ware Ware) Serializer() common.H {
-	return common.H{
+func (ware Ware) Serializer() types.H {
+	return types.H{
 		"id":          ware.ID,
 		"name":        ware.Name,
 		"code":        ware.Code,
