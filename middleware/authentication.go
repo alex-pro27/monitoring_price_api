@@ -81,10 +81,11 @@ func SessionAuthMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		store := context.Get(r, "sessions")
 		if store != nil {
-			store := store.(*sessions.CookieStore)
+			store := store.(*sessions.FilesystemStore)
 			session, _ := store.Get(r, "user")
 			userID := session.Values["user_id"]
 			if userID != nil {
+				//session.Options.MaxAge = config.Config.Session.MaxAge
 				db := context.Get(r, "DB").(*gorm.DB)
 				userManager := models.UserManager{db}
 				user := userManager.GetById(userID.(uint))
@@ -96,7 +97,10 @@ func SessionAuthMiddleware(h http.Handler) http.Handler {
 			}
 		}
 		logger.Logger.Warning(
-			fmt.Sprintf("Session, not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI),
+			fmt.Sprintf(
+				"Session, not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r),
+				r.RequestURI,
+			),
 		)
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Not authorized, forbidden"))

@@ -9,7 +9,7 @@ import (
 
 func SessionsMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var store = sessions.NewCookieStore([]byte(config.Config.Session.Key))
+		var store = sessions.NewFilesystemStore("", []byte(config.Config.Session.Key))
 		store.Options = &sessions.Options{
 			Path:     "/",
 			MaxAge:   config.Config.Session.MaxAge,

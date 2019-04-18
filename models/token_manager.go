@@ -12,7 +12,7 @@ type TokenManager struct {
 func (objects *TokenManager) NewToken(user *User) {
 	token := Token{}
 	if user.TokenID != 0 {
-		objects.Delete(&Token{}, "id = ?", user.TokenID)
+		objects.Delete(&Token{}, user.TokenID)
 	}
 	key := utils.GenerateToken()
 	t := Token{}

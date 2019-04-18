@@ -47,6 +47,15 @@ func Forbidden(w http.ResponseWriter) {
 	logger.HandleError(err)
 }
 
+func Unauthorized(w http.ResponseWriter, message string) {
+	w.WriteHeader(http.StatusUnauthorized)
+	if message == "" {
+		message = "Unauthorized"
+	}
+	_, err := w.Write([]byte(message))
+	logger.HandleError(err)
+}
+
 func ErrorResponse(w http.ResponseWriter, message string) {
 	JSONResponse(w, types.H{
 		"error":   true,

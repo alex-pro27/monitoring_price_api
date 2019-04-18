@@ -31,7 +31,6 @@ func Paginate(model interface{}, queryset *gorm.DB, page int, limit int, preload
 						method.Call(nil)[0].Interface().(types.H),
 					)
 				}
-
 			}
 			var length int
 			if length = limit; limit != len(result) {
@@ -50,6 +49,5 @@ func Paginate(model interface{}, queryset *gorm.DB, page int, limit int, preload
 			}
 		}
 	}
-
 	return data
 }

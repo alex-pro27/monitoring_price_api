@@ -11,6 +11,7 @@ type WorkGroup struct {
 	Address         string           `gorm:"size:255"`
 	Regions         []Regions        `gorm:"many2many:work_groups_regions;"`
 	MonitoringShops []MonitoringShop `gorm:"many2many:work_groups_monitoring_shops;"`
+	Active          bool             `gorm:"default:true"`
 }
 
 func (workGroup WorkGroup) Serializer() types.H {
@@ -23,5 +24,6 @@ func (workGroup WorkGroup) Serializer() types.H {
 		"name":    workGroup.Name,
 		"address": workGroup.Address,
 		"regions": regions,
+		"active":  workGroup.Active,
 	}
 }

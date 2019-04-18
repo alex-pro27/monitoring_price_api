@@ -21,7 +21,8 @@ admin:
   EMAIL:  template@mail.ru
 
 email:
-  EMAIL:    template@mail.ru
+  NAME:     Title
+  FROM:     template@mail.ru
   HOST:     mail.server.com
   PORT:     25
   USER:     username
@@ -36,4 +37,7 @@ sms:
   LOGIN:    username
   PASSWORD: password
   SOURCE:   Example.com
+
+fire_base:
+    CERT_PATH: /home/user/fire-base-admin.json
 

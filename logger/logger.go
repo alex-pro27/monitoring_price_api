@@ -25,8 +25,7 @@ func HandleError(err error) {
 }
 
 func Close() {
-	err := logFile.Close()
-	if err != nil {
+	if err := logFile.Close(); err != nil {
 		glogger.Fatalf("Failed to close log file: %v", err)
 	}
 	Logger.Close()

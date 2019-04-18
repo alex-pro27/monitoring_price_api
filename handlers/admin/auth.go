@@ -25,7 +25,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	common.Forbidden(w)
+	common.Unauthorized(w, "")
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	common.JSONResponse(w, types.H{
 		"error": false,
 	})
-
 }
 
 func CheckAuth(w http.ResponseWriter, r *http.Request) {

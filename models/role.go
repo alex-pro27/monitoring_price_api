@@ -7,12 +7,18 @@ import (
 
 type Role struct {
 	gorm.Model
-	Name        string       `gorm:"size:255;not null" json:"name"`
+	Name        string       `gorm:"size:255;not null"`
 	Permissions []Permission `gorm:"many2many:roles_permissions;"`
 }
 
 func (role Role) Serializer() types.H {
+	var permissions []types.H
+	for _, permission := range role.Permissions {
+		permissions = append(permissions, permission.Serializer())
+	}
 	return types.H{
-		"name": role.Name,
+		"id":          role.ID,
+		"name":        role.Name,
+		"permissions": permissions,
 	}
 }

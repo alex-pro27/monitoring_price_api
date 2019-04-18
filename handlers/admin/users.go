@@ -3,6 +3,7 @@ package admin
 import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
+	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
@@ -10,8 +11,12 @@ import (
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
+/**
+Получить пользователя по ID
+*/
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
@@ -19,25 +24,40 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	userManager := models.UserManager{db}
 	user := userManager.GetById(uint(id))
 	if user.ID == 0 {
-		common.ErrorResponse(w, "пользователь не найден")
+		common.ErrorResponse(w, "Пользователь не найден")
 	} else {
 		common.JSONResponse(w, user.Serializer())
 	}
 }
 
+/**
+Создание пользователя
+*/
 func CreateUser(w http.ResponseWriter, r *http.Request) {
+	user := models.User{}
+
+	requiredData := map[string]interface{}{
+		"UserName": r.PostFormValue("username"),
+		"Email":    r.PostFormValue("email"),
+		"Password": r.PostFormValue("password"),
+	}
+
+	extraData := map[string]interface{}{
+		"FirstName": strings.Trim(r.PostFormValue("first_name"), ""),
+		"LastName":  strings.Trim(r.PostFormValue("last_name"), ""),
+		"Phone":     r.PostFormValue("phone"),
+	}
+
+	errs := helpers.SetFieldsOnModel(&user, requiredData, true)
+	errs += helpers.SetFieldsOnModel(&user, extraData, false)
+
+	if len(errs) > 0 {
+		common.ErrorResponse(w, errs)
+		return
+	}
 	db := context.Get(r, "DB").(*gorm.DB)
 	userManager := models.UserManager{db}
-	user, err := userManager.Create(
-		&models.User{
-			FirstName: r.PostFormValue("first_name"),
-			LastName:  r.PostFormValue("last_name"),
-			UserName:  r.PostFormValue("username"),
-			Password:  r.PostFormValue("password"),
-			Email:     r.PostFormValue("email"),
-			Phone:     r.PostFormValue("phone"),
-		},
-	)
+	err := userManager.Create(&user)
 	if err != nil {
 		common.ErrorResponse(w, err.Error())
 	} else {
@@ -45,20 +65,68 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+/**
+Обновить информацию о пользователе по ID
+*/
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	// TODO
-	common.JSONResponse(w, types.H{
-		"message": "Update",
-	})
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
+	db := context.Get(r, "DB").(*gorm.DB)
+
+	user := models.User{}
+	db.First(&user, id)
+
+	if user.ID == 0 {
+		common.ErrorResponse(w, "Пользователь не найден")
+		return
+	}
+
+	data := map[string]interface{}{
+		"FirstName": strings.Trim(r.PostFormValue("first_name"), ""),
+		"LastName":  strings.Trim(r.PostFormValue("last_name"), ""),
+		"Email":     r.PostFormValue("email"),
+		"Phone":     r.PostFormValue("phone"),
+	}
+	errs := helpers.SetFieldsOnModel(&user, data, false)
+
+	if errs != "" {
+		common.ErrorResponse(w, errs)
+		return
+	}
+	_user := models.User{}
+	db.First(&_user, "email = ?", user.Email)
+	if _user.ID > 0 && _user.ID != user.ID {
+		common.ErrorResponse(w, fmt.Sprintf("Email %s занят", user.Email))
+		return
+	}
+
+	active, errParseBool := strconv.ParseBool(r.PostFormValue("active"))
+	if errParseBool == nil {
+		user.Active = active
+	}
+	tm := models.TokenManager{db}
+	tm.NewToken(&user)
+	db.Save(&user)
+	common.JSONResponse(w, user.Serializer())
 }
 
+/**
+Удаление юзера по ID
+*/
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
+	db := context.Get(r, "DB").(*gorm.DB)
+	user := models.User{}
+	db.Delete(&user, id)
 	common.JSONResponse(w, types.H{
-		"message": "Delete",
+		"error": false,
 	})
 }
 
+/**
+Список пользователей
+*/
 func AllUsers(w http.ResponseWriter, r *http.Request) {
 	page, err := strconv.Atoi(r.FormValue("page"))
 	if err != nil {
@@ -66,13 +134,6 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	regionID, _ := strconv.Atoi(r.FormValue("region"))
 	workGroupsID, _ := strconv.Atoi(r.FormValue("work_groups"))
-
-	user := context.Get(r, "user")
-
-	if user != nil {
-		user := user.(*models.User)
-		fmt.Println(user.LastName, user.FirstName, user.Token.Key) // FIXME
-	}
 
 	db := context.Get(r, "DB").(*gorm.DB)
 	qs := db
@@ -98,7 +159,7 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 			qs = qs.Where("uw.work_group_id = ?", workGroupsID)
 		}
 	}
-	qs = qs.Order("id")
+	qs = qs.Order("last_name")
 
 	data := common.Paginate(&users, qs, page, 100, []string{
 		"Token",
@@ -111,6 +172,5 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 		common.Error404(w)
 		return
 	}
-
 	common.JSONResponse(w, data)
 }

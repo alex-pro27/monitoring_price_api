@@ -3,12 +3,11 @@ package config
 import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"log"
 	"os"
-	"path"
 )
 
-var BaseDir, _ = os.Getwd()
-var ConfPath = path.Join(BaseDir, "./config/config.yml")
+var ConfPath = os.Getenv("MONITORING_PRICE_CONF")
 
 type TypeConfig struct {
 	Databases struct {
@@ -39,9 +38,10 @@ type TypeConfig struct {
 	}
 
 	Email struct {
-		Email    string `yaml:"EMAIL"`
+		Name     string `yaml:"NAME"`
+		From     string `yaml:"FROM"`
 		Host     string `yaml:"HOST"`
-		Port     string `yaml:"PORT"`
+		Port     int    `yaml:"PORT"`
 		User     string `yaml:"USER"`
 		Password string `yaml:"PASSWORD"`
 	}
@@ -56,5 +56,8 @@ var Config *TypeConfig
 
 func Load() {
 	data, _ := ioutil.ReadFile(ConfPath)
-	yaml.Unmarshal(data, &Config)
+	if err := yaml.Unmarshal(data, &Config); err != nil {
+		log.Fatal(err)
+	}
+
 }
