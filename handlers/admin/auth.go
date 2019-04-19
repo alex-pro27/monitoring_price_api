@@ -1,9 +1,12 @@
 package admin
 
 import (
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
+	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
+	"github.com/alex-pro27/monitoring_price_api/utils"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"net/http"
@@ -22,9 +25,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		context.Set(r, "user", &user)
 		if common.Login(w, r) == nil {
 			common.JSONResponse(w, user.Serializer())
+			logger.Logger.Info(fmt.Sprintf("Admin authorized %s %s", user.LastName, user.FirstName))
 			return
 		}
 	}
+	logger.Logger.Warning(
+		fmt.Sprintf(
+			"Admin unauthorized: IP: %s, url: %s",
+			utils.GetIPAddress(r),
+			r.RequestURI,
+		),
+	)
 	common.Unauthorized(w, "")
 }
 

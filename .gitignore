@@ -1,3 +1,5 @@
 .idea
 *.bin
 config/config.yml
+config/test_config.yml
+vendor
