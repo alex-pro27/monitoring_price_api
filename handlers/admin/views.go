@@ -1,16 +1,38 @@
 package admin
 
 import (
-	"encoding/json"
+	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"github.com/wesovilabs/koazee"
 	"net/http"
-	"strconv"
+	"reflect"
+	"strings"
 )
+
+type Permission struct {
+	Name   string                  `json:"name"`
+	Access models.PermissionAccess `json:"access"`
+}
+
+type View struct {
+	ViewID        uint       `json:"view_id"`
+	Path          string     `json:"path"`
+	ContentTypeID uint       `json:"content_type_id"`
+	Name          string     `json:"name"`
+	Plural        string     `json:"plural"`
+	Icon          string     `json:"icon"`
+	ParentID      uint       `json:"parent_id"`
+	Children      []*View    `json:"children"`
+	Permission    Permission `json:"permission"`
+}
+
+func (view *View) AddChild(child *View) {
+	view.Children = append(view.Children, child)
+}
 
 /**
 Получить все вьюхи доступные юзеру
@@ -19,135 +41,123 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 	db := context.Get(r, "DB").(*gorm.DB)
 
 	user := context.Get(r, "user").(*models.User)
-	type Permission struct {
-		Name   string                  `json:"name"`
-		Access models.PermissionAccess `json:"access"`
+
+	var data []*View
+	assesPermission := Permission{
+		Name:   models.Permission{}.GetChoiceAccess()[models.ACCESS],
+		Access: models.ACCESS,
 	}
-
-	type View struct {
-		ID         uint       `json:"id"`
-		Name       string     `json:"name"`
-		ParentID   uint       `json:"parent_id"`
-		Children   []uint     `json:"children"`
-		Permission Permission `json:"permission"`
-	}
-
-	data := make(map[string]View)
-
 	if user.IsSuperUser {
 		var views []models.Views
-		db.Find(&views)
+		db.Preload("ContentType").Preload("Children").Find(&views)
+		var contentTypes []models.ContentType
+		db.Find(&contentTypes)
 
-		for _, view := range views {
-			var childrenIDX []uint
-			for _, child := range view.Children {
-				childrenIDX = append(childrenIDX, child.ID)
+		for _, contentType := range contentTypes {
+			model := databases.FindModelByContentType(db, contentType.Table)
+			model = reflect.New(reflect.TypeOf(model)).Interface()
+			obj := reflect.ValueOf(model)
+			methodGetMeta := obj.MethodByName("Meta")
+			var name, plural string
+			if methodGetMeta.Kind() != reflect.Invalid {
+				name = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Name
+				plural = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Plural
+			} else {
+				name = obj.Elem().Type().Name()
+				plural = name + "s"
 			}
-			data[view.RoutePath] = View{
-				ID:       view.ID,
-				Name:     view.Name,
-				ParentID: view.ParentID,
-				Children: childrenIDX,
-				Permission: Permission{
-					Name:   models.ChoiceAccess[models.ACCESS],
-					Access: models.ACCESS,
-				},
+			path := strings.Replace(contentType.Table, "_", "-", -1)
+			view := &View{
+				ContentTypeID: contentType.ID,
+				Name:          name,
+				Path:          "/" + path,
+				Plural:        plural,
+				Permission:    assesPermission,
+			}
+			data = append(data, view)
+		}
+
+		for _, item := range views {
+			stream := koazee.StreamOf(item.Children)
+			view := &View{
+				ContentTypeID: item.ContentType.ID,
+				Name:          item.Name,
+				Plural:        item.Name,
+				Path:          item.RoutePath,
+				Icon:          item.Icon,
+				ParentID:      item.ParentID,
+				Permission:    assesPermission,
+			}
+			for _, _item := range views {
+				child := stream.Filter(func(v models.Views) bool { return v.ID == _item.ID }).Out().Val()
+				if len(child.([]models.Views)) > 0 {
+					_view := &View{
+						ContentTypeID: item.ContentType.ID,
+						Name:          _item.Name,
+						Plural:        _item.Name,
+						Path:          _item.RoutePath,
+						Icon:          _item.Icon,
+						ParentID:      _item.ParentID,
+						Permission:    assesPermission,
+					}
+					view.AddChild(_view)
+				}
+			}
+			if view.ParentID == 0 {
+				data = append(data, view)
 			}
 		}
 	} else {
 		var roles []models.Role
 		db.Preload(
+			"Permissions.View",
+		).Preload(
 			"Permissions.View.Children",
 		).Joins(
 			"INNER JOIN users_roles ur ON ur.role_id = id",
-		).Find(&roles, "ur.user_id = ?", user.ID)
+		).Find(&roles, "ur.user_id = ? ", user.ID)
 
 		for _, role := range roles {
 			for _, permission := range role.Permissions {
-				var childrenIDX []uint
-				for _, child := range permission.View.Children {
-					childrenIDX = append(childrenIDX, child.ID)
+				stream := koazee.StreamOf(permission.View.Children)
+				view := &View{
+					ViewID:        permission.ViewID,
+					Path:          permission.View.RoutePath,
+					ContentTypeID: permission.View.ContentTypeID,
+					Name:          permission.View.Name,
+					ParentID:      permission.View.ParentID,
+					Permission: Permission{
+						Name:   permission.GetPermissionName(),
+						Access: permission.Access,
+					},
 				}
-				if permission.Access > data[permission.View.RoutePath].Permission.Access {
-					data[permission.View.RoutePath] = View{
-						ID:       permission.ViewID,
-						Name:     permission.View.Name,
-						ParentID: permission.View.ParentID,
-						Children: childrenIDX,
-						Permission: Permission{
-							Name:   permission.GetPermissionName(),
-							Access: permission.Access,
-						},
+				for _, _permission := range role.Permissions {
+					child := stream.Filter(func(v models.Views) bool { return v.ID == _permission.ViewID }).Out().Val()
+					if len(child.([]models.Views)) > 0 {
+						_view := &View{
+							ViewID:        _permission.ViewID,
+							Path:          _permission.View.RoutePath,
+							ContentTypeID: _permission.View.ContentTypeID,
+							Name:          _permission.View.Name,
+							ParentID:      _permission.View.ParentID,
+							Permission: Permission{
+								Name:   _permission.GetPermissionName(),
+								Access: _permission.Access,
+							},
+						}
+						view.AddChild(_view)
 					}
 				}
+				if view.ParentID == 0 {
+					data = append(data, view)
+				}
+
 			}
 		}
+
 	}
 	if user.IsSuperUser || len(data) > 0 {
 		common.JSONResponse(w, data)
-	} else {
-		common.Forbidden(w)
-	}
-}
-
-func GetView(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, _ := strconv.Atoi(vars["id"])
-	db := context.Get(r, "DB").(*gorm.DB)
-	view := models.Views{}
-	db.Preloads("ContentType").First(&view, id)
-	common.JSONResponse(w, view.Serializer())
-}
-
-/**
-Получить все представления в адмике
-*/
-func AllViews(w http.ResponseWriter, r *http.Request) {
-	db := context.Get(r, "DB").(*gorm.DB)
-	var views []models.Views
-	db.Find(&views)
-	var data []types.H
-	for _, item := range views {
-		data = append(data, item.Serializer())
-	}
-	common.JSONResponse(w, data)
-}
-
-/**
-Записать информацию о доступном представлении в админке
-@method PUT
-@param {
-	"name": string
-	"route_path": string
-	"parent_id": int
-	"children_idx": []int
-}
-*/
-func CreateView(w http.ResponseWriter, r *http.Request) {
-	user := context.Get(r, "user").(*models.User)
-	if user.IsSuperUser {
-		db := context.Get(r, "DB").(*gorm.DB)
-		view := models.Views{
-			Name:      r.PostFormValue("name"),
-			RoutePath: r.PostFormValue("route_path"),
-		}
-		parentID, _ := strconv.Atoi(r.FormValue("prent_id"))
-		if parentID > 0 {
-			view.ParentID = uint(parentID)
-		}
-		var childrenIDX []int
-		err := json.Unmarshal([]byte(r.PostFormValue("children_idx")), &childrenIDX)
-
-		db.Create(&view)
-		db.NewRecord(view)
-
-		if err != nil {
-			var children []models.Views
-			db.Model(&children).Where("id IN (?)", childrenIDX).Update("parent_id", view.ID)
-			view.Children = children
-		}
-
-		common.JSONResponse(w, view.Serializer())
 	} else {
 		common.Forbidden(w)
 	}

@@ -1,32 +1,33 @@
 package models
 
 import (
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 	"time"
 )
 
-type Periods int
+type PeriodsType int
 
 const (
-	DAY     Periods = 0
-	WEEK    Periods = 1
-	MONTH   Periods = 2
-	QUARTER Periods = 3
-	YEAR    Periods = 4
+	PERIOD_DAY PeriodsType = iota
+	PERIOD_WEEK
+	PERIOD_MONTH
+	PERIOD_QUARTER
+	PERIOD_YEAR
 )
 
-var PeriodChoices = map[Periods]string{
-	DAY:     "День",
-	WEEK:    "Неделя",
-	MONTH:   "Месяц",
-	QUARTER: "Квартал",
-	YEAR:    "Год",
+var PeriodChoices = map[PeriodsType]string{
+	PERIOD_DAY:     "День",
+	PERIOD_WEEK:    "Неделя",
+	PERIOD_MONTH:   "Месяц",
+	PERIOD_QUARTER: "Квартал",
+	PERIOD_YEAR:    "Год",
 }
 
 type Period struct {
 	gorm.Model
-	Period       Periods
+	Period       PeriodsType
 	Start        time.Time
 	End          time.Time
 	SelectedDays pq.Int64Array `gorm:"type:integer[]"`
@@ -34,4 +35,19 @@ type Period struct {
 
 func (period Period) GetPeriodName() string {
 	return PeriodChoices[period.Period]
+}
+
+func (period *Period) CRUD(db *gorm.DB) types.CRUDManager {
+	return &PeriodManager{db, period}
+}
+
+func (Period) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Период",
+		Plural: "Периоды",
+	}
+}
+
+func (period Period) String() string {
+	return period.GetPeriodName()
 }

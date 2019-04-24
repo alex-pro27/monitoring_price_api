@@ -20,3 +20,14 @@ func (region Regions) Serializer() types.H {
 		"name": region.Name,
 	}
 }
+
+func (Regions) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Регион",
+		Plural: "Регионы",
+	}
+}
+
+func (region Regions) String() string {
+	return region.Name
+}

@@ -14,22 +14,25 @@ const (
 	ACCESS    PermissionAccess = 7
 )
 
-var ChoiceAccess = map[PermissionAccess]string{
-	FORBIDDEN: "Не разрешено",
-	READ:      "Только для чтения",
-	WRITE:     "Доступ на запись",
-	ACCESS:    "Полный доступ (Чтение, Запись, Удаление)",
-}
-
 type Permission struct {
 	gorm.Model
 	ViewID uint
 	View   Views
-	Access PermissionAccess `gorm:"default:3"`
+	Access PermissionAccess `gorm:"default:3" option:"choice:GetChoiceAccess"`
+}
+
+func (Permission) GetChoiceAccess() map[PermissionAccess]string {
+	return map[PermissionAccess]string{
+		FORBIDDEN: "Не разрешено",
+		READ:      "Только для чтения",
+		WRITE:     "Доступ на запись",
+		ACCESS:    "Полный доступ (Чтение, Запись, Удаление)",
+	}
+
 }
 
 func (permission Permission) GetPermissionName() string {
-	return ChoiceAccess[permission.Access]
+	return permission.GetChoiceAccess()[permission.Access]
 }
 
 func (permission Permission) Serializer() types.H {
@@ -38,4 +41,15 @@ func (permission Permission) Serializer() types.H {
 		"access_name": permission.GetPermissionName(),
 		"views":       permission.View.Serializer(),
 	}
+}
+
+func (Permission) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Разрешение",
+		Plural: "Разрешения",
+	}
+}
+
+func (permission Permission) String() string {
+	return permission.GetPermissionName()
 }

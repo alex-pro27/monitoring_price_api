@@ -28,14 +28,14 @@ var DefaultModels = []interface{}{
 }
 
 func ConnectDefaultDB() *gorm.DB {
-	defaultDB := &config.Config.Databases.Default
+	dbConf := config.Config.Databases.Default
 	params := fmt.Sprintf(
 		"host=%s port=%s user=%s dbname=%s password=%s",
-		defaultDB.Host,
-		defaultDB.Port,
-		defaultDB.User,
-		defaultDB.Database,
-		defaultDB.Password,
+		dbConf.Host,
+		dbConf.Port,
+		dbConf.User,
+		dbConf.Database,
+		dbConf.Password,
 	)
 	db, err := gorm.Open("postgres", params)
 	logger.HandleError(err)

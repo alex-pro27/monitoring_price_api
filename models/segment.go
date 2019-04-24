@@ -29,3 +29,14 @@ func (segment Segment) Serializer() types.H {
 		"wares":  wares,
 	}
 }
+
+func (Segment) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Сегмент",
+		Plural: "Сегменты",
+	}
+}
+
+func (segment Segment) String() string {
+	return segment.Name
+}

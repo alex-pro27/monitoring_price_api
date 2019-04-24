@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
@@ -23,4 +24,15 @@ func (ware Ware) Serializer() types.H {
 		"description": ware.Description,
 		"active":      ware.Active,
 	}
+}
+
+func (Ware) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Товар",
+		Plural: "Товары",
+	}
+}
+
+func (ware Ware) String() string {
+	return fmt.Sprintf("%s %s", ware.Code, ware.Name)
 }

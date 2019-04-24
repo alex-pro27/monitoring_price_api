@@ -22,3 +22,14 @@ func (role Role) Serializer() types.H {
 		"permissions": permissions,
 	}
 }
+
+func (Role) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Роль",
+		Plural: "Роли",
+	}
+}
+
+func (role Role) String() string {
+	return role.Name
+}

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -11,25 +12,28 @@ import (
 
 type User struct {
 	gorm.Model
-	FirstName   string      `gorm:"size:255;not null"`
-	LastName    string      `gorm:"size:255;"`
-	UserName    string      `gorm:"size:255;unique_index;not null"`
-	Password    string      `gorm:"size:60;not null" json:"password"`
-	Email       string      `gorm:"type:varchar(100);unique_index;not null"`
-	Phone       string      `gorm:"type:varchar(17);"`
+	FirstName   string      `gorm:"size:255;not null" form:"required:true;label:Имя"`
+	LastName    string      `gorm:"size:255;" form:"required:true;label:Фамилия"`
+	UserName    string      `gorm:"size:255;unique_index;not null" form:"required:true;disabled:true"`
+	Password    string      `gorm:"size:60;not null" form:"required:true"`
+	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required:true"`
+	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
 	Roles       []Role      `gorm:"many2many:users_roles;"`
 	WorkGroup   []WorkGroup `gorm:"many2many:users_work_groups;"`
-	Active      bool        `gorm:"default:true"`
+	Online      bool        `gorm:"default:false" form:"disabled:true"`
+	Active      bool        `gorm:"default:true" form:"type:switch;label:Активировать"`
 	IsSuperUser bool        `gorm:"default:false"`
-	IsStaff     bool        `gorm:"default:false"`
+	IsStaff     bool        `gorm:"default:false" form:"label:Сотрудник"`
 	TokenID     uint
 	Token       Token
 }
 
 func (user *User) SetPhone(phone string) error {
 	phone = strings.Trim(phone, "")
-	if matched, _ := regexp.MatchString("^\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}", phone); !matched {
-		return errors.New("not valid phone")
+	if phone != "" {
+		if matched, _ := regexp.MatchString("^\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}", phone); !matched {
+			return errors.New("not valid phone")
+		}
 	}
 	user.Phone = phone
 	return nil
@@ -78,8 +82,27 @@ func (user User) CheckPassword(password string) bool {
 
 func (user User) Meta() types.ModelsMeta {
 	return types.ModelsMeta{
-		Name: "Пользователь",
+		Name:   "Пользователь",
+		Plural: "Пользователи",
 	}
+}
+
+func (user User) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		ExcludeFields: []string{"Password", "TokenID", "IsSuperUser"},
+	}
+}
+
+func (user User) String() string {
+	return fmt.Sprintf("%s %s", user.LastName, user.FirstName)
+}
+
+func (user *User) CRUD(db *gorm.DB) types.CRUDManager {
+	return user.Manager(db)
+}
+
+func (user *User) Manager(db *gorm.DB) *UserManager {
+	return &UserManager{DB: db, self: user}
 }
 
 func (user User) Serializer() types.H {
@@ -98,6 +121,7 @@ func (user User) Serializer() types.H {
 		"username":      user.UserName,
 		"token":         user.Token.Key,
 		"email":         user.Email,
+		"online":        user.Online,
 		"roles":         roles,
 		"phone":         user.Phone,
 		"active":        user.Active,

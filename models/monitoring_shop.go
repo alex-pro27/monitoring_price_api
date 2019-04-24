@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
@@ -51,4 +52,15 @@ func (monitoringShop MonitoringShop) Serializer() types.H {
 		"is_must_photo": monitoringShop.IsMustPhoto,
 		"segments":      segmentIDX,
 	}
+}
+
+func (MonitoringShop) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Магазин для мониторинга",
+		Plural: "Магазины для мониторинга",
+	}
+}
+
+func (monitoringShop MonitoringShop) String() string {
+	return fmt.Sprintf("%s %s %s", monitoringShop.Code, monitoringShop.Name, monitoringShop.Address)
 }

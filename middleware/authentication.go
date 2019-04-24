@@ -26,8 +26,8 @@ func BasicAuthMiddleware(h http.Handler) http.Handler {
 				if err == nil {
 					logpassw := strings.Split(string(data), ":")
 					db := context.Get(r, "DB").(*gorm.DB)
-					userManager := models.UserManager{db}
-					user := userManager.GetByUserName(logpassw[0])
+					user := models.User{}
+					user.Manager(db).GetByUserName(logpassw[0])
 					if user.CheckPassword(logpassw[1]) {
 						context.Set(r, "user", &user)
 						h.ServeHTTP(w, r)
@@ -56,8 +56,8 @@ func TokenAuthMiddleware(h http.Handler) http.Handler {
 			authData := strings.Split(auth, " ")
 			if len(authData) == 2 && authData[0] == "Token" {
 				db := context.Get(r, "DB").(*gorm.DB)
-				userManager := models.UserManager{db}
-				user := userManager.GetUserByToken(authData[1])
+				user := models.User{}
+				user.Manager(db).GetUserByToken(authData[1])
 				if user.ID > 0 {
 					context.Set(r, "user", &user)
 					h.ServeHTTP(w, r)
@@ -87,8 +87,8 @@ func SessionAuthMiddleware(h http.Handler) http.Handler {
 			if userID != nil {
 				//session.Options.MaxAge = config.Config.Session.MaxAge
 				db := context.Get(r, "DB").(*gorm.DB)
-				userManager := models.UserManager{db}
-				user := userManager.GetById(userID.(uint))
+				user := models.User{}
+				user.Manager(db).GetById(userID.(uint))
 				if user.ID != 0 {
 					context.Set(r, "user", &user)
 					h.ServeHTTP(w, r)

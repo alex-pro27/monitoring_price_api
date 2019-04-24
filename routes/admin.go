@@ -17,7 +17,7 @@ func RegisterAdminRoutes(r *mux.Router) {
 	authRouter := router.NewRoute().Subrouter()
 	authRouter.Use(middleware.SessionAuthMiddleware)
 
-	notAuthRoutes := []Route{
+	noCheckAuthRoutes := []Route{
 		{
 			Path:    "/login",
 			Handler: admin.Login,
@@ -35,6 +35,34 @@ func RegisterAdminRoutes(r *mux.Router) {
 		},
 	}
 
+	contentTypesRoutes := []Route{
+		{
+			Path:    "/available-views",
+			Handler: admin.GetAvailableViews,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/content-types",
+			Handler: admin.AllFieldsInModel,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/content-type/{id:[0-9]+}",
+			Handler: admin.GetContentTypeFields,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/content-type/create",
+			Handler: admin.CRUDContentType,
+			Methods: []string{"PUT"},
+		},
+		{
+			Path:    "/content-type/{id:[0-9]+}",
+			Handler: admin.CRUDContentType,
+			Methods: []string{"POST", "DELETE"},
+		},
+	}
+
 	usersRoutes := []Route{
 		{
 			Path:    "/users",
@@ -42,99 +70,9 @@ func RegisterAdminRoutes(r *mux.Router) {
 			Access:  models.READ,
 			Methods: []string{"GET"},
 		},
-		{
-			Path:    "/create-user",
-			Handler: admin.CreateUser,
-			Access:  models.WRITE,
-			Methods: []string{"PUT"},
-		},
-		{
-			Path:    "/user/{id:[0-9]+}",
-			Handler: admin.GetUser,
-			Access:  models.READ,
-			Methods: []string{"GET"},
-		},
-		{
-			Path:    "/user/{id:[0-9]+}",
-			Handler: admin.UpdateUser,
-			Access:  models.WRITE,
-			Methods: []string{"POST"},
-		},
-		{
-			Path:    "/user/{id:[0-9]+}",
-			Handler: admin.DeleteUser,
-			Access:  models.ACCESS,
-			Methods: []string{"DELETE"},
-		},
 	}
 
-	rolesRoutes := []Route{
-		{
-			Path:    "/roles",
-			Handler: admin.AllRoles,
-			Access:  models.READ,
-			Methods: []string{"GET"},
-		},
-		{
-			Path:    "/create-role",
-			Handler: admin.CreateRole,
-			Access:  models.WRITE,
-			Methods: []string{"PUT"},
-		},
-	}
-
-	permissionsRoutes := []Route{
-		{
-			Path:    "/permissions",
-			Handler: admin.GetPermissions,
-			Access:  models.READ,
-			Methods: []string{"GET"},
-		},
-	}
-
-	viewsRoutes := []Route{
-		{
-			Path:    "/views",
-			Handler: admin.AllViews,
-			Access:  models.READ,
-			Methods: []string{"GET"},
-		},
-		{
-			Path:    "/create-view",
-			Handler: admin.CreateView,
-			Access:  models.WRITE,
-			Methods: []string{"PUT"},
-		},
-		{
-			Path:    "/view/{id:[0-9]+}",
-			Handler: admin.GetView,
-			Access:  models.READ,
-			Methods: []string{"GET"},
-		},
-	}
-
-	workGroupsRoutes := []Route{
-		{
-			Path:    "/work-groups",
-			Handler: admin.AllWorkGroups,
-			Access:  models.READ,
-			Methods: []string{"GET"},
-		},
-	}
-
-	noCheckPermissionsRoutes := []Route{
-		{
-			Path:    "/available-views",
-			Handler: admin.GetAvailableViews,
-			Methods: []string{"GET"},
-		},
-	}
-
-	RegisterRoutes(router, notAuthRoutes, nil)
+	RegisterRoutes(router, noCheckAuthRoutes, nil)
 	RegisterRoutes(authRouter, usersRoutes, models.User{})
-	RegisterRoutes(authRouter, rolesRoutes, models.Role{})
-	RegisterRoutes(authRouter, permissionsRoutes, models.Permission{})
-	RegisterRoutes(authRouter, viewsRoutes, models.Views{})
-	RegisterRoutes(authRouter, workGroupsRoutes, models.WorkGroup{})
-	RegisterRoutes(authRouter, noCheckPermissionsRoutes, nil)
+	RegisterRoutes(authRouter, contentTypesRoutes, nil)
 }

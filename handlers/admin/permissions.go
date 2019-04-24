@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"net/http"
-	"sort"
 )
 
 /**
@@ -39,22 +38,4 @@ func CheckPermission(
 		common.Forbidden(w)
 	}
 	return access
-}
-
-/**
-Получить список разрешений
-*/
-func GetPermissions(w http.ResponseWriter, r *http.Request) {
-	type Permission struct {
-		Code models.PermissionAccess `json:"code"`
-		Name string                  `json:"name"`
-	}
-	var permissions []Permission
-	for code, name := range models.ChoiceAccess {
-		permissions = append(permissions, Permission{code, name})
-	}
-	sort.Slice(permissions, func(i, j int) bool {
-		return permissions[i].Code < permissions[j].Code
-	})
-	common.JSONResponse(w, permissions)
 }

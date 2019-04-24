@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
@@ -26,4 +27,15 @@ func (workGroup WorkGroup) Serializer() types.H {
 		"regions": regions,
 		"active":  workGroup.Active,
 	}
+}
+
+func (WorkGroup) Meta() types.ModelsMeta {
+	return types.ModelsMeta{
+		Name:   "Рабочая группа",
+		Plural: "Рабочие группы",
+	}
+}
+
+func (workGroup WorkGroup) String() string {
+	return fmt.Sprintf("%s %s", workGroup.Name, workGroup.Address)
 }

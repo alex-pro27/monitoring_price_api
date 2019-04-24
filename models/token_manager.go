@@ -7,23 +7,23 @@ import (
 
 type TokenManager struct {
 	*gorm.DB
+	self *Token
 }
 
-func (objects *TokenManager) NewToken(user *User) {
-	token := Token{}
+func (manager *TokenManager) NewToken(user *User) {
 	if user.TokenID != 0 {
-		objects.Delete(&Token{}, user.TokenID)
+		manager.Delete(&Token{}, user.TokenID)
 	}
 	key := utils.GenerateToken()
 	t := Token{}
-	objects.First(&t, "key = ?", key)
+	manager.First(&t, "key = ?", key)
 	if t.ID != 0 {
-		objects.NewToken(user)
+		manager.NewToken(user)
 	} else {
-		token.Key = key
-		objects.Create(&token)
-		objects.NewRecord(token)
-		user.TokenID = token.ID
-		user.Token = token
+		manager.self.Key = key
+		manager.Create(manager.self)
+		manager.NewRecord(*manager.self)
+		user.TokenID = manager.self.ID
+		user.Token = *manager.self
 	}
 }

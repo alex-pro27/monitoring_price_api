@@ -19,8 +19,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	username := r.PostFormValue("username")
 	password := r.PostFormValue("password")
 	db := context.Get(r, "DB").(*gorm.DB)
-	userManager := models.UserManager{db}
-	user := userManager.GetByUserName(username)
+	user := models.User{}
+	user.Manager(db).GetByUserName(username)
 	if user.ID != 0 && user.CheckPassword(password) {
 		context.Set(r, "user", &user)
 		if common.Login(w, r) == nil {

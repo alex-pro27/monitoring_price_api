@@ -6,6 +6,13 @@ import (
 	"strings"
 )
 
+func ToCamelCase(str string) string {
+	link := regexp.MustCompile("(^[A-Za-z])|_([A-Za-z])")
+	return link.ReplaceAllStringFunc(str, func(s string) string {
+		return strings.ToUpper(strings.Replace(s, "_", "", -1))
+	})
+}
+
 func ToSnakeCase(str string) string {
 	matchFirstCap := regexp.MustCompile("(.)([A-Z][a-z]+)")
 	matchAllCap := regexp.MustCompile("([a-z0-9])([A-Z])")
@@ -18,22 +25,24 @@ func IsZero(v reflect.Value) bool {
 	return !v.IsValid() || reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
 }
 
-func SetFieldsOnModel(model interface{}, data map[string]interface{}, required bool) string {
+func SetFieldsOnModel(model interface{}, data map[string]interface{}) string {
 	obj := reflect.ValueOf(model)
 	var errs []error
 	for key, value := range data {
 		value := reflect.ValueOf(value)
-		if required || !IsZero(value) {
-			method := obj.MethodByName("Set" + key)
-			if method.Kind() != reflect.Invalid {
-				e := method.Call([]reflect.Value{value})[0].Interface()
-				if e != nil {
-					errs = append(errs, e.(error))
-				}
-			} else {
+		key := ToCamelCase(key)
+		method := obj.MethodByName("Set" + key)
+		if method.Kind() != reflect.Invalid {
+			e := method.Call([]reflect.Value{value})[0].Interface()
+			if e != nil {
+				errs = append(errs, e.(error))
+			}
+		} else {
+			if obj.Elem().FieldByName(key).Kind() != reflect.Invalid {
 				obj.Elem().FieldByName(key).Set(value)
 			}
 		}
+
 	}
 	message := strings.Builder{}
 	for _, e := range errs {
@@ -43,4 +52,18 @@ func SetFieldsOnModel(model interface{}, data map[string]interface{}, required b
 		}
 	}
 	return message.String()
+}
+
+func ParseTag(tag string) map[string]string {
+	data := make(map[string]string)
+	options := strings.Split(tag, ";")
+	for _, item := range options {
+		opt := strings.Split(item, ":")
+		if len(opt) > 1 {
+			data[opt[0]] = opt[1]
+		} else if len(opt) == 1 {
+			data[opt[0]] = "true"
+		}
+	}
+	return data
 }

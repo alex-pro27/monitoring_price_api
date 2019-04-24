@@ -50,6 +50,9 @@ type TypeConfig struct {
 		StaticRoot string `yaml:"STATIC_ROOT"`
 		MediaRoot  string `yaml:"MEDIA_ROOT"`
 	}
+	Firebase struct {
+		CertPath string `yaml:"CERT_PATH"`
+	}
 }
 
 var Config *TypeConfig
