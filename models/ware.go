@@ -12,7 +12,7 @@ type Ware struct {
 	Code        string `gorm:"size:255"`
 	Description string
 	Segment     Segment
-	SegmentID   uint
+	SegmentId   uint
 	Active      bool `gorm:"default:true"`
 }
 

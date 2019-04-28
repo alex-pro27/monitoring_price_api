@@ -16,9 +16,9 @@ const (
 
 type Permission struct {
 	gorm.Model
-	ViewID uint
-	View   Views
-	Access PermissionAccess `gorm:"default:3" option:"choice:GetChoiceAccess"`
+	ViewId uint
+	View   Views            `gorm:"foreignkey:ViewId"`
+	Access PermissionAccess `gorm:"default:3" form:"choice:GetChoiceAccess"`
 }
 
 func (Permission) GetChoiceAccess() map[PermissionAccess]string {
@@ -28,7 +28,6 @@ func (Permission) GetChoiceAccess() map[PermissionAccess]string {
 		WRITE:     "Доступ на запись",
 		ACCESS:    "Полный доступ (Чтение, Запись, Удаление)",
 	}
-
 }
 
 func (permission Permission) GetPermissionName() string {

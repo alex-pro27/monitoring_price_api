@@ -11,8 +11,8 @@ type TokenManager struct {
 }
 
 func (manager *TokenManager) NewToken(user *User) {
-	if user.TokenID != 0 {
-		manager.Delete(&Token{}, user.TokenID)
+	if user.TokenId != 0 {
+		manager.Delete(&Token{}, user.TokenId)
 	}
 	key := utils.GenerateToken()
 	t := Token{}
@@ -23,7 +23,7 @@ func (manager *TokenManager) NewToken(user *User) {
 		manager.self.Key = key
 		manager.Create(manager.self)
 		manager.NewRecord(*manager.self)
-		user.TokenID = manager.self.ID
+		user.TokenId = manager.self.ID
 		user.Token = *manager.self
 	}
 }

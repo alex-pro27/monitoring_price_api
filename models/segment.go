@@ -12,7 +12,7 @@ type Segment struct {
 	gorm.Model
 	Name   string `gorm:"size:255"`
 	Code   string `gorm:"size:255"`
-	Wares  []Ware `gorm:"foreignkey:SegmentID"`
+	Wares  []Ware `gorm:"foreignkey:SegmentId"`
 	Active bool   `gorm:"default:true"`
 }
 
@@ -29,6 +29,12 @@ func (segment Segment) Serializer() types.H {
 		"wares":  wares,
 	}
 }
+
+//func (Segment) Admin() types.AdminMeta {
+//	return types.AdminMeta{
+//		Preload: []string{"Wares"},
+//	}
+//}
 
 func (Segment) Meta() types.ModelsMeta {
 	return types.ModelsMeta{

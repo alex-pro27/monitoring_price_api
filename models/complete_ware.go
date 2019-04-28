@@ -13,7 +13,7 @@ import (
 type CompletedWare struct {
 	gorm.Model
 	User             User
-	UserID           uint
+	UserId           uint
 	DateUpload       time.Time
 	Missing          bool
 	Discount         bool
@@ -22,15 +22,16 @@ type CompletedWare struct {
 	MaxPrice         float64
 	Description      string
 	Comment          string
-	Ware             Ware `gorm:"auto_preload"`
-	WareID           uint
+	Ware             Ware
+	WareId           uint
 	MonitoringShop   MonitoringShop
-	MonitoringShopID uint
+	MonitoringShopId uint
 	MonitoringType   MonitoringType
-	MonitoringTypeID uint
+	MonitoringTypeId uint
 	Region           Regions
-	RegionID         uint
+	RegionId         uint   `gorm:"default:null"`
 	Barcode          string `gorm:"size:255;"`
+	Photos           []Photos
 }
 
 func (CompletedWare) Meta() types.ModelsMeta {
@@ -41,5 +42,15 @@ func (CompletedWare) Meta() types.ModelsMeta {
 }
 
 func (completeWare CompletedWare) String() string {
-	return fmt.Sprintf("%s %s %s", completeWare.Ware.Code, completeWare.Ware.Name)
+	return fmt.Sprintf("%s %s", completeWare.Ware.Code, completeWare.Ware.Name)
+}
+
+func (completeWare *CompletedWare) Manager(db *gorm.DB) *CompleteWareManager {
+	return &CompleteWareManager{db, completeWare}
+}
+
+func (CompletedWare) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		Preload: []string{"Ware"},
+	}
 }

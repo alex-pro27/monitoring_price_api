@@ -1,10 +1,17 @@
 package helpers
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
+
+const ISO8601 = "2006-01-02T15:04:05"
 
 func ToCamelCase(str string) string {
 	link := regexp.MustCompile("(^[A-Za-z])|_([A-Za-z])")
@@ -25,33 +32,61 @@ func IsZero(v reflect.Value) bool {
 	return !v.IsValid() || reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
 }
 
-func SetFieldsOnModel(model interface{}, data map[string]interface{}) string {
+func SetFieldsForModel(model interface{}, data map[string]interface{}) error {
 	obj := reflect.ValueOf(model)
-	var errs []error
+	errs := make(map[string]string)
 	for key, value := range data {
 		value := reflect.ValueOf(value)
-		key := ToCamelCase(key)
-		method := obj.MethodByName("Set" + key)
-		if method.Kind() != reflect.Invalid {
-			e := method.Call([]reflect.Value{value})[0].Interface()
-			if e != nil {
-				errs = append(errs, e.(error))
+		name := ToCamelCase(key)
+		kind := obj.Elem().FieldByName(name).Kind()
+		if kind != reflect.Invalid && kind != reflect.Slice {
+			if value.Kind() != obj.Elem().FieldByName(name).Kind() {
+				var _value interface{}
+				strValue := fmt.Sprintf("%v", value.Interface())
+				switch obj.Elem().FieldByName(name).Interface().(type) {
+				case uint:
+					_value, _ = strconv.Atoi(strValue)
+					_value = uint(_value.(int))
+					break
+				case int32:
+					_value, _ = strconv.ParseInt(strValue, 10, 32)
+					break
+				case int64:
+					_value, _ = strconv.ParseInt(strValue, 10, 64)
+					break
+				case float32:
+					_value, _ = strconv.ParseFloat(strValue, 32)
+					break
+				case float64:
+					_value, _ = strconv.ParseFloat(strValue, 64)
+					break
+				case time.Time:
+					_value, _ = time.Parse(ISO8601, strValue)
+					break
+				default:
+					continue
+				}
+				value = reflect.ValueOf(_value)
 			}
-		} else {
-			if obj.Elem().FieldByName(key).Kind() != reflect.Invalid {
-				obj.Elem().FieldByName(key).Set(value)
+			method := obj.MethodByName("Set" + name)
+			if method.Kind() != reflect.Invalid {
+				e := method.Call([]reflect.Value{value})[0].Interface()
+				if e != nil {
+					errs[key] = e.(error).Error()
+				}
+			} else {
+				obj.Elem().FieldByName(name).Set(value)
 			}
 		}
+	}
 
+	var err error
+	if len(errs) > 0 {
+		messageByte, _ := json.Marshal(errs)
+		message := string(messageByte)
+		err = errors.New(message)
 	}
-	message := strings.Builder{}
-	for _, e := range errs {
-		if e != nil {
-			message.Write([]byte(e.Error()))
-			message.Write([]byte("\n"))
-		}
-	}
-	return message.String()
+	return err
 }
 
 func ParseTag(tag string) map[string]string {

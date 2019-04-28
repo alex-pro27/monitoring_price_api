@@ -22,6 +22,9 @@ type ModelsMeta struct {
 type AdminMeta struct {
 	ExcludeFields []string
 	Fields        []string
+	Preload       []string
+	FieldSortBy   []string
+	DefaultSortBy []string
 }
 
 type Model interface {

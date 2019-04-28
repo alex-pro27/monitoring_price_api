@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/utils"
@@ -36,8 +35,8 @@ func BasicAuthMiddleware(h http.Handler) http.Handler {
 				}
 			}
 		}
-		logger.Logger.Warning(
-			fmt.Sprintf("Not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI),
+		logger.Logger.Warningf(
+			"Not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI,
 		)
 		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -65,8 +64,8 @@ func TokenAuthMiddleware(h http.Handler) http.Handler {
 				}
 			}
 		}
-		logger.Logger.Warning(
-			fmt.Sprintf("Invalid token: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI),
+		logger.Logger.Warningf(
+			"Invalid token: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI,
 		)
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Invalid token"))
@@ -96,11 +95,8 @@ func SessionAuthMiddleware(h http.Handler) http.Handler {
 				}
 			}
 		}
-		logger.Logger.Warning(
-			fmt.Sprintf(
-				"Session, not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r),
-				r.RequestURI,
-			),
+		logger.Logger.Warningf(
+			"Session, not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI,
 		)
 		w.WriteHeader(http.StatusUnauthorized)
 		_, err := w.Write([]byte("Not authorized, forbidden"))

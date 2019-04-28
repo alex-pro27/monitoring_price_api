@@ -10,7 +10,7 @@ type Photos struct {
 	gorm.Model
 	Path            string
 	CompletedWare   CompletedWare
-	CompletedWareID uint
+	CompletedWareId uint
 }
 
 func (Photos) Meta() types.ModelsMeta {
@@ -21,5 +21,5 @@ func (Photos) Meta() types.ModelsMeta {
 }
 
 func (photo Photos) String() string {
-	return fmt.Sprintf("<img alt='%s' src='%s'/>", photo.CompletedWare.Ware.Name, photo.Path)
+	return fmt.Sprintf("<img style='width:100px;height:100px;border-radius:50px;' alt='%s' src='%s'/>", photo.CompletedWare.Ware.Name, photo.Path)
 }

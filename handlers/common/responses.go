@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/config"
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/types"
@@ -56,9 +57,9 @@ func Unauthorized(w http.ResponseWriter, message string) {
 	logger.HandleError(err)
 }
 
-func ErrorResponse(w http.ResponseWriter, message string) {
+func ErrorResponse(w http.ResponseWriter, format string, args ...interface{}) {
 	JSONResponse(w, types.H{
 		"error":   true,
-		"message": message,
+		"message": fmt.Sprintf(format, args...),
 	})
 }

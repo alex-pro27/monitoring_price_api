@@ -12,19 +12,19 @@ import (
 
 type User struct {
 	gorm.Model
-	FirstName   string      `gorm:"size:255;not null" form:"required:true;label:Имя"`
-	LastName    string      `gorm:"size:255;" form:"required:true;label:Фамилия"`
-	UserName    string      `gorm:"size:255;unique_index;not null" form:"required:true;disabled:true"`
-	Password    string      `gorm:"size:60;not null" form:"required:true"`
-	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required:true"`
+	FirstName   string      `gorm:"size:255;not null" form:"required;label:Имя"`
+	LastName    string      `gorm:"size:255;" form:"required;label:Фамилия"`
+	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;disabled;label:Login"`
+	Password    string      `gorm:"size:60;not null" form:"required"`
+	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
 	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
-	Roles       []Role      `gorm:"many2many:users_roles;"`
-	WorkGroup   []WorkGroup `gorm:"many2many:users_work_groups;"`
-	Online      bool        `gorm:"default:false" form:"disabled:true"`
+	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
+	WorkGroup   []WorkGroup `gorm:"many2many:users_work_groups;" form:"label:Рабочая группа"`
+	Online      bool        `gorm:"default:false" form:"disabled"`
 	Active      bool        `gorm:"default:true" form:"type:switch;label:Активировать"`
 	IsSuperUser bool        `gorm:"default:false"`
 	IsStaff     bool        `gorm:"default:false" form:"label:Сотрудник"`
-	TokenID     uint
+	TokenId     uint
 	Token       Token
 }
 
@@ -89,7 +89,7 @@ func (user User) Meta() types.ModelsMeta {
 
 func (user User) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		ExcludeFields: []string{"Password", "TokenID", "IsSuperUser"},
+		ExcludeFields: []string{"Password", "TokenId", "IsSuperUser"},
 	}
 }
 

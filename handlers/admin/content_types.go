@@ -20,23 +20,39 @@ import (
 	"time"
 )
 
+type Field struct {
+	Name        string      `json:"name"`
+	Label       string      `json:"label"`
+	Type        string      `json:"type"`
+	Disabled    bool        `json:"disabled"`
+	Required    bool        `json:"required"`
+	Value       interface{} `json:"value"`
+	ContentType string      `json:"content_type"`
+}
+
 func getShortInfo(db *gorm.DB, model interface{}, where ...interface{}) (data []types.H) {
 	model = reflect.New(reflect.TypeOf(model)).Interface()
 	db.Find(model, where...)
 	obj := reflect.ValueOf(model).Elem()
 
 	addToData := func(iobj reflect.Value) {
+		el := iobj
+		if iobj.Kind() == reflect.Ptr {
+			el = iobj.Elem()
+		}
 		strMethod := iobj.MethodByName("String")
-		if strMethod.Kind() != reflect.Invalid {
-			data = append(data, types.H{
-				"id":    iobj.FieldByName("Model").FieldByName("ID").Interface(),
-				"title": strMethod.Call(nil)[0].Interface().(string),
-			})
-		} else {
-			data = append(data, types.H{
-				"id":    iobj.FieldByName("Model").FieldByName("ID").Interface(),
-				"title": "<Object>",
-			})
+		if el.Kind() != reflect.Invalid {
+			if strMethod.Kind() != reflect.Invalid {
+				data = append(data, types.H{
+					"id":    el.FieldByName("Model").FieldByName("ID").Interface(),
+					"title": strMethod.Call(nil)[0].Interface().(string),
+				})
+			} else {
+				data = append(data, types.H{
+					"id":    el.FieldByName("Model").FieldByName("ID").Interface(),
+					"title": "[Object]",
+				})
+			}
 		}
 	}
 
@@ -51,172 +67,154 @@ func getShortInfo(db *gorm.DB, model interface{}, where ...interface{}) (data []
 	return data
 }
 
-func modelByFields(db *gorm.DB, model interface{}, where ...interface{}) (interface{}, [][]types.H) {
-	var data [][]types.H
+func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (interface{}, []Field) {
+	var fields []Field
 	model = reflect.New(reflect.TypeOf(model)).Interface()
 	scope := db.NewScope(model).GetStructFields()
 	obj := reflect.ValueOf(model).Elem()
-	var (
-		excludeFields []string
-		fields        []string
-	)
+	var adminMeta types.AdminMeta
 
 	adminMetaMethod := obj.MethodByName("Admin")
 	if adminMetaMethod.Kind() != reflect.Invalid {
-		adminMeta := adminMetaMethod.Call(nil)[0].Interface().(types.AdminMeta)
-		excludeFields = adminMeta.ExcludeFields
-		fields = adminMeta.Fields
+		adminMeta = adminMetaMethod.Call(nil)[0].Interface().(types.AdminMeta)
 	}
 
-	_streamExclude := koazee.StreamOf(excludeFields)
-	_streamFields := koazee.StreamOf(fields)
-	getFields := func(obj reflect.Value) (data []types.H) {
-		var ID uint = 0
+	_streamExclude := koazee.StreamOf(adminMeta.ExcludeFields)
+	_streamFields := koazee.StreamOf(adminMeta.Fields)
 
-		for i := 0; i < obj.NumField(); i++ {
+	if len(where) > 0 {
+		qs := db
+		for _, preload := range adminMeta.Preload {
+			qs = db.Preload(preload)
+		}
+		qs.Find(model, where...)
+	}
 
-			fieldName := obj.Type().Field(i).Name
+	var ID uint = 0
+	for i := 0; i < obj.NumField(); i++ {
+		form := helpers.ParseTag(obj.Type().Field(i).Tag.Get("form"))
 
-			var (
-				value       interface{}
-				contentType string
-			)
+		disabled, _ := strconv.ParseBool(form["disabled"])
+		required, _ := strconv.ParseBool(form["required"])
 
-			form := helpers.ParseTag(obj.Type().Field(i).Tag.Get("form"))
-			disabled, _ := strconv.ParseBool(form["disabled"])
-			required, _ := strconv.ParseBool(form["required"])
-			fieldType := form["type"]
-			label := form["label"]
+		field := Field{
+			Name:     obj.Type().Field(i).Name,
+			Label:    form["label"],
+			Type:     form["type"],
+			Required: required,
+			Disabled: disabled,
+		}
 
-			if fieldName == "Model" {
-				fieldName = "id"
-				fieldType = "hidden"
-				disabled = true
-				required = true
-				value = obj.Field(i).FieldByName("ID").Interface()
-				ID = value.(uint)
+		if field.Name == "Model" {
+			field.Name = "id"
+			field.Type = "hidden"
+			field.Disabled = true
+			field.Required = true
+			field.Value = obj.Field(i).FieldByName("ID").Interface()
+			ID = field.Value.(uint)
+		} else {
+			index, _ := _streamExclude.IndexOf(field.Name)
+			if index > -1 {
+				continue
+			}
+			index, _ = _streamFields.IndexOf(field.Name)
+			if len(adminMeta.Fields) > 0 && index == -1 {
+				continue
+			}
+			dbInfo := scope[i+3]
+			field.Value = obj.Field(i).Interface()
+			defaultValue := dbInfo.TagSettings["DEFAULT"]
+			rel := dbInfo.Relationship
+
+			if rel != nil {
+				if ID == 0 {
+					continue
+				}
+				field.Type = rel.Kind
+				value := obj.Field(i).Interface()
+				field.ContentType = db.NewScope(value).GetModelStruct().TableName(db)
+				switch rel.Kind {
+				case "many_to_many":
+					var idx []uint
+					tableName := rel.JoinTableHandler.Table(db)
+					foreignKey := rel.JoinTableHandler.DestinationForeignKeys()[0].DBName
+					db.Table(tableName).Where(
+						fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]), ID,
+					).Pluck(foreignKey, &idx)
+					field.Value = getShortInfo(db, value, "id IN (?)", idx)
+					break
+				case "has_many":
+					field.Value = getShortInfo(
+						db, obj.Field(i).Interface(),
+						fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]),
+						ID,
+					)
+					break
+				case "belongs_to":
+					associationID := obj.FieldByName(rel.ForeignFieldNames[0]).Interface().(uint)
+					field.Value = getShortInfo(db, value, "id = ?", associationID)
+					if len(field.Value.([]types.H)) > 0 {
+						field.Value = field.Value.([]types.H)[0]
+					}
+					break
+				}
 			} else {
-
-				index, _ := _streamExclude.IndexOf(fieldName)
-
-				if index > -1 {
-					continue
-				}
-				index, _ = _streamFields.IndexOf(fieldName)
-				if len(fields) > 0 && index == -1 {
-					continue
-				}
-
-				dbInfo := scope[i+3]
-				value = obj.Field(i).Interface()
-				defaultValue := dbInfo.TagSettings["DEFAULT"]
-
 				switch obj.Field(i).Interface().(type) {
 				case int, uint, int32, int64, float32, float64:
-					fieldType = "number"
+					field.Type = "number"
 					if ID == 0 {
-						value, _ = strconv.Atoi(defaultValue)
+						field.Value, _ = strconv.Atoi(defaultValue)
 					}
 					break
 				case time.Time:
-					fieldType = "date"
+					field.Type = "date"
 					if ID == 0 {
 						if strings.Index(defaultValue, "now") > -1 {
-							value = time.Now().Format(time.RFC3339Nano)
+							field.Value = time.Now().Format(helpers.ISO8601)
 						} else {
-							value = defaultValue
+							field.Value = defaultValue
 						}
+					} else {
+						field.Value = field.Value.(time.Time).Format(helpers.ISO8601)
 					}
 					break
 				case string:
 					size, _ := strconv.Atoi(dbInfo.TagSettings["SIZE"])
 					t := dbInfo.TagSettings["TYPE"]
 					if (size == 0 || size > 255) && strings.Index(t, "varchar") == -1 {
-						fieldType = "text"
+						field.Type = "text"
 					} else {
-						fieldType = "string"
+						field.Type = "string"
 					}
 					if ID == 0 {
-						value = defaultValue
+						field.Value = defaultValue
 					}
 					break
 				case bool:
 					if form["type"] == "switch" {
-						fieldType = "switch"
+						field.Type = "switch"
 					} else {
-						fieldType = "checkbox"
+						field.Type = "checkbox"
 					}
 					if ID == 0 {
-						value, _ = strconv.ParseBool(defaultValue)
+						field.Value, _ = strconv.ParseBool(defaultValue)
 					}
 					break
 				case pq.Int64Array:
-					fieldName = "array"
+					field.Name = "array"
 					break
-				default:
-					if reflect.Slice == obj.Field(i).Kind() {
-						if ID > 0 {
-							fieldType = "array_rel"
-							contentType = dbInfo.DBName
-							rel := dbInfo.Relationship
-							if rel.Kind == "many_to_many" {
-								var idx []uint
-								tableName := rel.JoinTableHandler.Table(db)
-								foreignKey := rel.JoinTableHandler.DestinationForeignKeys()[0].DBName
-								db.Table(tableName).Where(
-									fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]), ID,
-								).Pluck(foreignKey, &idx)
-								value = getShortInfo(db, obj.Field(i).Interface(), "id IN (?)", idx)
-							} else {
-								continue
-							}
-						}
-					} else if reflect.Struct == obj.Field(i).Kind() {
-						fieldType = "rel"
-						contentType = dbInfo.DBName
-						if ID > 0 {
-							value = getShortInfo(db, obj.Field(i).Interface(), "id = ?", ID)
-							if len(value.([]types.H)) > 0 {
-								value = value.([]types.H)[0]
-							}
-						} else {
-							value = nil
-						}
-					}
 				}
 			}
-
-			name := helpers.ToSnakeCase(fieldName)
-			if label == "" {
-				label = name
-			}
-
-			field := types.H{
-				"name":     name,
-				"label":    label,
-				"type":     fieldType,
-				"disabled": disabled,
-				"required": required,
-				"value":    value,
-			}
-			if fieldType == "rel" || fieldType == "array_rel" {
-				field["content_type"] = contentType
-			}
-			data = append(data, field)
 		}
-		return data
-	}
-	if len(where) > 0 {
-		db.Find(model, where...)
-	}
-	if obj.Kind() == reflect.Slice {
-		for i := 0; i < obj.Len(); i++ {
-			data = append(data, getFields(obj.Index(i)))
+
+		field.Name = helpers.ToSnakeCase(field.Name)
+		if field.Label == "" {
+			field.Label = field.Name
 		}
-	} else {
-		data = append(data, getFields(obj))
+
+		fields = append(fields, field)
 	}
-	return model, data
+	return model, fields
 }
 
 func GetContentTypeFields(w http.ResponseWriter, r *http.Request) {
@@ -233,39 +231,38 @@ func GetContentTypeFields(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if model != nil {
-		model, fields := modelByFields(db, model, "id = ?", id)
-		if len(fields) > 0 {
-			obj := reflect.ValueOf(model)
-			methodGetMeta := obj.MethodByName("Meta")
-			meta := make(map[string]string)
-			if methodGetMeta.Kind() != reflect.Invalid {
-				meta["name"] = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Name
-				meta["plural"] = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Plural
-			} else {
-				meta["name"] = obj.Type().Name()
-				meta["plural"] = obj.Type().Name() + "s"
-			}
-			strMethod := obj.MethodByName("String")
-			ID := obj.Elem().FieldByName("Model").FieldByName("ID").Interface().(uint)
-			if ID > 0 {
-				if strMethod.Kind() != reflect.Invalid {
-					meta["title"] = strMethod.Call(nil)[0].Interface().(string)
-				} else {
-					meta["title"] = "<Object>"
-				}
-			}
-			data := types.H{
-				"meta":   meta,
-				"fields": fields[0],
-			}
-			common.JSONResponse(w, data)
-			return
+		model, fields := getFieldsFromModel(db, model, "id = ?", id)
+		obj := reflect.ValueOf(model)
+		methodGetMeta := obj.MethodByName("Meta")
+		meta := make(map[string]string)
+		if methodGetMeta.Kind() != reflect.Invalid {
+			meta["name"] = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Name
+			meta["plural"] = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Plural
+		} else {
+			meta["name"] = obj.Type().Name()
+			meta["plural"] = obj.Type().Name() + "s"
 		}
+		strMethod := obj.MethodByName("String")
+		ID := obj.Elem().FieldByName("Model").FieldByName("ID").Interface().(uint)
+		if ID > 0 {
+			if strMethod.Kind() != reflect.Invalid {
+				meta["title"] = strMethod.Call(nil)[0].Interface().(string)
+			} else {
+				meta["title"] = "[Object]"
+			}
+		}
+		data := types.H{
+			"meta":   meta,
+			"fields": fields,
+		}
+		common.JSONResponse(w, data)
+	} else {
+		common.Forbidden(w)
 	}
-	common.Forbidden(w)
 }
 
 func CRUDContentType(w http.ResponseWriter, r *http.Request) {
+	var err error
 	contentTypeID, _ := strconv.Atoi(r.PostFormValue("content_type_id"))
 	db := context.Get(r, "DB").(*gorm.DB)
 	contentType := models.ContentType{}
@@ -307,16 +304,14 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		id, _ = strconv.Atoi(vars["id"])
 		db.First(model, id)
 		if obj.Elem().FieldByName("ID").Interface().(uint) == 0 {
-			common.ErrorResponse(w, "")
+			common.ErrorResponse(w, "Object not found")
 			return
 		}
 	}
-
 	if crud.Kind() == reflect.Invalid {
 		if r.Method == "POST" || r.Method == "PUT" {
-			errs := helpers.SetFieldsOnModel(model, fields)
-			if errs != "" {
-				common.ErrorResponse(w, errs)
+			if err = helpers.SetFieldsForModel(model, fields); err != nil {
+				common.ErrorResponse(w, err.Error())
 				return
 			}
 		}
@@ -384,14 +379,21 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 		if !CheckPermission(w, r, models.READ, model) {
 			return
 		}
-		modelSlice := reflect.New(reflect.SliceOf(reflect.TypeOf(model))).Interface()
-		paginateData := common.Paginate(modelSlice, db, page, 100, []string{}, false)
-		obj := reflect.ValueOf(model)
+		obj := reflect.New(reflect.TypeOf(model))
+		adminMetaMethod := obj.MethodByName("Admin")
+		var adminMeta types.AdminMeta
+		if adminMetaMethod.Kind() != reflect.Invalid {
+			adminMeta = adminMetaMethod.Call(nil)[0].Interface().(types.AdminMeta)
+		}
+		modelSlice := reflect.New(reflect.SliceOf(obj.Elem().Type())).Interface()
+		paginateData := common.Paginate(modelSlice, db, page, 100, adminMeta.Preload, false)
+
 		methodGetMeta := obj.MethodByName("Meta")
 		meta := make(map[string]string)
 		if methodGetMeta.Kind() != reflect.Invalid {
-			meta["name"] = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Name
-			meta["plural"] = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Plural
+			modelMeta := methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta)
+			meta["name"] = modelMeta.Name
+			meta["plural"] = modelMeta.Plural
 		} else {
 			meta["name"] = obj.Type().Name()
 			meta["plural"] = obj.Type().Name() + "s"
@@ -408,7 +410,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 			} else {
 				result = append(result, types.H{
 					"id":    iobj.FieldByName("Model").FieldByName("ID").Interface(),
-					"title": "<Object>",
+					"title": "[Object]",
 				})
 			}
 		}

@@ -60,8 +60,9 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 			methodGetMeta := obj.MethodByName("Meta")
 			var name, plural string
 			if methodGetMeta.Kind() != reflect.Invalid {
-				name = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Name
-				plural = methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta).Plural
+				modelMeta := methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta)
+				name = modelMeta.Name
+				plural = modelMeta.Plural
 			} else {
 				name = obj.Elem().Type().Name()
 				plural = name + "s"
@@ -70,8 +71,8 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 			view := &View{
 				ContentTypeID: contentType.ID,
 				Name:          name,
-				Path:          "/" + path,
 				Plural:        plural,
+				Path:          "/" + path,
 				Permission:    assesPermission,
 			}
 			data = append(data, view)
@@ -80,24 +81,26 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 		for _, item := range views {
 			stream := koazee.StreamOf(item.Children)
 			view := &View{
+				ViewID:        item.ID,
 				ContentTypeID: item.ContentType.ID,
 				Name:          item.Name,
 				Plural:        item.Name,
 				Path:          item.RoutePath,
 				Icon:          item.Icon,
-				ParentID:      item.ParentID,
+				ParentID:      item.ParentId,
 				Permission:    assesPermission,
 			}
 			for _, _item := range views {
 				child := stream.Filter(func(v models.Views) bool { return v.ID == _item.ID }).Out().Val()
 				if len(child.([]models.Views)) > 0 {
 					_view := &View{
+						ViewID:        _item.ID,
 						ContentTypeID: item.ContentType.ID,
 						Name:          _item.Name,
 						Plural:        _item.Name,
 						Path:          _item.RoutePath,
 						Icon:          _item.Icon,
-						ParentID:      _item.ParentID,
+						ParentID:      _item.ParentId,
 						Permission:    assesPermission,
 					}
 					view.AddChild(_view)
@@ -121,25 +124,25 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 			for _, permission := range role.Permissions {
 				stream := koazee.StreamOf(permission.View.Children)
 				view := &View{
-					ViewID:        permission.ViewID,
+					ViewID:        permission.ViewId,
 					Path:          permission.View.RoutePath,
-					ContentTypeID: permission.View.ContentTypeID,
+					ContentTypeID: permission.View.ContentTypeId,
 					Name:          permission.View.Name,
-					ParentID:      permission.View.ParentID,
+					ParentID:      permission.View.ParentId,
 					Permission: Permission{
 						Name:   permission.GetPermissionName(),
 						Access: permission.Access,
 					},
 				}
 				for _, _permission := range role.Permissions {
-					child := stream.Filter(func(v models.Views) bool { return v.ID == _permission.ViewID }).Out().Val()
+					child := stream.Filter(func(v models.Views) bool { return v.ID == _permission.ViewId }).Out().Val()
 					if len(child.([]models.Views)) > 0 {
 						_view := &View{
-							ViewID:        _permission.ViewID,
+							ViewID:        _permission.ViewId,
 							Path:          _permission.View.RoutePath,
-							ContentTypeID: _permission.View.ContentTypeID,
+							ContentTypeID: _permission.View.ContentTypeId,
 							Name:          _permission.View.Name,
-							ParentID:      _permission.View.ParentID,
+							ParentID:      _permission.View.ParentId,
 							Permission: Permission{
 								Name:   _permission.GetPermissionName(),
 								Access: _permission.Access,

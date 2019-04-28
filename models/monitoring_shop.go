@@ -27,12 +27,10 @@ type MonitoringShop struct {
 	Обязательность фотографирования
 	*/
 	IsMustPhoto bool
-
 	/**
 	Группа мониторинга
 	*/
 	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;"`
-
 	/**
 	Сегменты
 	*/

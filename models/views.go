@@ -10,6 +10,7 @@ type ViewType int
 const (
 	VIEW_TYPE_ALL ViewType = iota
 	VIEW_TYPE_EDIT
+	VIEW_TYPE_CUSTOM
 )
 
 type Views struct {
@@ -17,18 +18,19 @@ type Views struct {
 	Name          string   `gorm:"size:255"`
 	Icon          string   `grom:"size:255"`
 	ViewType      ViewType `gorm:"default:0" choice:"ViewTypeChoices"`
-	ParentID      uint
+	ParentId      uint     `gorm:"default:null"`
 	Parent        *Views
 	RoutePath     string  `gorm:"size:255"`
-	Children      []Views `gorm:"foreignkey:ParentID"`
-	ContentTypeID uint
+	Children      []Views `gorm:"foreignkey:ParentId"`
+	ContentTypeId uint
 	ContentType   ContentType
 }
 
 func (Views) GetViewTypeChoices() map[ViewType]string {
 	return map[ViewType]string{
-		VIEW_TYPE_ALL:  "Для списка",
-		VIEW_TYPE_EDIT: "Для редактирования",
+		VIEW_TYPE_ALL:    "Для списка",
+		VIEW_TYPE_EDIT:   "Для редактирования",
+		VIEW_TYPE_CUSTOM: "Другое",
 	}
 }
 
@@ -45,7 +47,7 @@ func (view Views) Serializer() types.H {
 		"id":           view.ID,
 		"name":         view.Name,
 		"icon":         view.Icon,
-		"parent_id":    view.ParentID,
+		"parent_id":    view.ParentId,
 		"route_path":   view.RoutePath,
 		"children_idx": childrenIDX,
 		"content_type": view.ContentType,
