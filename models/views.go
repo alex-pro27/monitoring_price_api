@@ -61,6 +61,12 @@ func (Views) Meta() types.ModelsMeta {
 	}
 }
 
+func (Views) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		ExcludeFields: []string{"ContentTypeId", "ParentId"},
+	}
+}
+
 func (view Views) String() string {
 	return view.Name
 }

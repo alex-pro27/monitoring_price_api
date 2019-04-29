@@ -44,13 +44,13 @@ func getShortInfo(db *gorm.DB, model interface{}, where ...interface{}) (data []
 		if el.Kind() != reflect.Invalid {
 			if strMethod.Kind() != reflect.Invalid {
 				data = append(data, types.H{
-					"id":    el.FieldByName("Model").FieldByName("ID").Interface(),
-					"title": strMethod.Call(nil)[0].Interface().(string),
+					"value": el.FieldByName("Model").FieldByName("ID").Interface(),
+					"label": strMethod.Call(nil)[0].Interface().(string),
 				})
 			} else {
 				data = append(data, types.H{
-					"id":    el.FieldByName("Model").FieldByName("ID").Interface(),
-					"title": "[Object]",
+					"value": el.FieldByName("Model").FieldByName("ID").Interface(),
+					"label": "[Object]",
 				})
 			}
 		}
@@ -404,13 +404,13 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 			strMethod := iobj.MethodByName("String")
 			if strMethod.Kind() != reflect.Invalid {
 				result = append(result, types.H{
-					"id":    iobj.FieldByName("Model").FieldByName("ID").Interface(),
-					"title": strMethod.Call(nil)[0].Interface().(string),
+					"value": iobj.FieldByName("Model").FieldByName("ID").Interface(),
+					"label": strMethod.Call(nil)[0].Interface().(string),
 				})
 			} else {
 				result = append(result, types.H{
-					"id":    iobj.FieldByName("Model").FieldByName("ID").Interface(),
-					"title": "[Object]",
+					"value": iobj.FieldByName("Model").FieldByName("ID").Interface(),
+					"label": "[Object]",
 				})
 			}
 		}
