@@ -37,6 +37,16 @@ func (Ware) Meta() types.ModelsMeta {
 func (Ware) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		ExcludeFields: []string{"SegmentId"},
+		SearchFields:  []string{"Name", "Barcode"},
+		Preload:       []string{"Segment"},
+		OrderBy:       []string{"SegmentId", "Name"},
+		SortFields:    []string{"Name", "Barcode", "Active"},
+		ExtraFields: []types.ExtraField{
+			{
+				Name:  "Segment.Name",
+				Label: "Сегмент",
+			},
+		},
 	}
 }
 

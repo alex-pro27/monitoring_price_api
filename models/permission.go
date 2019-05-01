@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
@@ -14,6 +15,13 @@ const (
 	ACCESS    PermissionAccess = 7
 )
 
+var PermissionAccessChoices = map[PermissionAccess]string{
+	FORBIDDEN: "Не разрешено",
+	READ:      "Только для чтения",
+	WRITE:     "Доступ на запись",
+	ACCESS:    "Полный доступ (Чтение, Запись, Удаление)",
+}
+
 type Permission struct {
 	gorm.Model
 	ViewId uint
@@ -22,16 +30,11 @@ type Permission struct {
 }
 
 func (Permission) GetChoiceAccess() map[PermissionAccess]string {
-	return map[PermissionAccess]string{
-		FORBIDDEN: "Не разрешено",
-		READ:      "Только для чтения",
-		WRITE:     "Доступ на запись",
-		ACCESS:    "Полный доступ (Чтение, Запись, Удаление)",
-	}
+	return PermissionAccessChoices
 }
 
 func (permission Permission) GetPermissionName() string {
-	return permission.GetChoiceAccess()[permission.Access]
+	return PermissionAccessChoices[permission.Access]
 }
 
 func (permission Permission) Serializer() types.H {
@@ -49,6 +52,17 @@ func (Permission) Meta() types.ModelsMeta {
 	}
 }
 
+func (Permission) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		ExcludeFields: []string{"ViewId"},
+		Preload:       []string{"View"},
+	}
+}
+
+func (permission *Permission) CRUD(db *gorm.DB) types.CRUDManager {
+	return &PermissionManager{db, permission}
+}
+
 func (permission Permission) String() string {
-	return permission.GetPermissionName()
+	return fmt.Sprintf("%s - %s", permission.View.Name, permission.GetPermissionName())
 }

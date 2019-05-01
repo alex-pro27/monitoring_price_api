@@ -27,10 +27,14 @@ var PeriodChoices = map[PeriodsType]string{
 
 type Period struct {
 	gorm.Model
-	Period       PeriodsType
+	Period       PeriodsType `form:"choice:GetPeriodChoices"`
 	Start        time.Time
 	End          time.Time
 	SelectedDays pq.Int64Array `gorm:"type:integer[]"`
+}
+
+func (Period) GetPeriodChoices() map[PeriodsType]string {
+	return PeriodChoices
 }
 
 func (period Period) GetPeriodName() string {

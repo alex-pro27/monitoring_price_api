@@ -11,7 +11,7 @@ type HTTPHandler func(w http.ResponseWriter, r *http.Request)
 type CRUDManager interface {
 	Create(fields H) error
 	Update(fields H) error
-	Delete(fields H) error
+	Delete() error
 }
 
 type ModelsMeta struct {
@@ -19,12 +19,19 @@ type ModelsMeta struct {
 	Plural string
 }
 
+type ExtraField struct {
+	Name  string
+	Label string
+}
+
 type AdminMeta struct {
 	ExcludeFields []string
 	Fields        []string
 	Preload       []string
-	FieldSortBy   []string
-	DefaultSortBy []string
+	SortFields    []string
+	OrderBy       []string
+	SearchFields  []string
+	ExtraFields   []ExtraField
 }
 
 type Model interface {

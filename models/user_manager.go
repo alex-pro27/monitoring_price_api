@@ -7,7 +7,6 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"reflect"
 	"time"
 )
 
@@ -34,23 +33,10 @@ func (manager *UserManager) Create(fields types.H) (err error) {
 		return errors.New(string(message))
 	}
 
-	workGroupIDX := fields["work_group"]
-	var workGroups []WorkGroup
-	if reflect.ValueOf(workGroupIDX).Kind() == reflect.Slice {
-		manager.Find(&workGroups, "id IN (?)", workGroupIDX)
-		manager.self.WorkGroup = workGroups
-	}
-
-	rolesIDX := fields["roles"]
-	var roles []Role
-	if reflect.ValueOf(rolesIDX).Kind() == reflect.Slice {
-		manager.Find(&roles, "id IN (?)", rolesIDX)
-		manager.self.Roles = roles
-	}
-
 	(&Token{}).Manager(manager.DB).NewToken(manager.self)
 	manager.DB.Create(manager.self)
 	manager.NewRecord(manager.self)
+	helpers.SetManyToMany(manager.DB, manager.self, fields)
 	return nil
 }
 
@@ -69,27 +55,14 @@ func (manager *UserManager) Update(fields types.H) (err error) {
 		return errors.New(string(message))
 	}
 
-	workGroupIDX := fields["work_group"]
-	var workGroups []WorkGroup
-	if reflect.ValueOf(workGroupIDX).Kind() == reflect.Slice {
-		manager.Find(&workGroups, "id IN (?)", workGroupIDX)
-		manager.self.WorkGroup = workGroups
-	}
-
-	rolesIDX := fields["roles"]
-	var roles []Role
-	if reflect.ValueOf(rolesIDX).Kind() == reflect.Slice {
-		manager.Find(&roles, "id IN (?)", rolesIDX)
-		manager.self.Roles = roles
-	}
-
 	manager.self.Active = fields["active"].(bool)
 	(&Token{}).Manager(manager.DB).NewToken(manager.self)
 	manager.Save(manager.self)
+	helpers.SetManyToMany(manager.DB, manager.self, fields)
 	return nil
 }
 
-func (manager *UserManager) Delete(fields types.H) (err error) {
+func (manager *UserManager) Delete() (err error) {
 	now := time.Now()
 	manager.self.DeletedAt = &now
 	manager.self.Active = false

@@ -12,8 +12,8 @@ import (
 */
 type CompletedWare struct {
 	gorm.Model
-	User             User
 	UserId           uint
+	User             User
 	DateUpload       time.Time
 	Missing          bool
 	Discount         bool
@@ -22,16 +22,15 @@ type CompletedWare struct {
 	MaxPrice         float64
 	Description      string
 	Comment          string
-	Ware             Ware
 	WareId           uint
-	MonitoringShop   MonitoringShop
+	Ware             Ware
 	MonitoringShopId uint
-	MonitoringType   MonitoringType
+	MonitoringShop   MonitoringShop
 	MonitoringTypeId uint
+	MonitoringType   MonitoringType
+	RegionId         uint `gorm:"default:null"`
 	Region           Regions
-	RegionId         uint   `gorm:"default:null"`
-	Barcode          string `gorm:"size:255;"`
-	Photos           []Photos
+	Photos           []Photos `gorm:"foreignkey:CompletedWareId"`
 }
 
 func (CompletedWare) Meta() types.ModelsMeta {
@@ -43,6 +42,10 @@ func (CompletedWare) Meta() types.ModelsMeta {
 
 func (completeWare CompletedWare) String() string {
 	return fmt.Sprintf("%s %s", completeWare.Ware.Code, completeWare.Ware.Name)
+}
+
+func (comleteWare *CompletedWare) CRUD(db *gorm.DB) types.CRUDManager {
+	return comleteWare.Manager(db)
 }
 
 func (completeWare *CompletedWare) Manager(db *gorm.DB) *CompleteWareManager {

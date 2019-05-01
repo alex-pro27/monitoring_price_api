@@ -30,11 +30,12 @@ func (segment Segment) Serializer() types.H {
 	}
 }
 
-//func (Segment) Admin() types.AdminMeta {
-//	return types.AdminMeta{
-//		Preload: []string{"Wares"},
-//	}
-//}
+func (Segment) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		OrderBy:    []string{"Name"},
+		SortFields: []string{"Name", "Code"},
+	}
+}
 
 func (Segment) Meta() types.ModelsMeta {
 	return types.ModelsMeta{

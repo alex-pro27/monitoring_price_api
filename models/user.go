@@ -89,7 +89,10 @@ func (user User) Meta() types.ModelsMeta {
 
 func (user User) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		ExcludeFields: []string{"Password", "TokenId", "IsSuperUser"},
+		ExcludeFields: []string{"Password", "TokenId", "IsSuperUser", "Token"},
+		OrderBy:       []string{"LastName", "FirstName"},
+		SearchFields:  []string{"LastName", "FirstName", "Email", "Phone"},
+		SortFields:    []string{"LastName", "FirstName", "Email"},
 	}
 }
 

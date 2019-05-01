@@ -19,15 +19,16 @@ type Permission struct {
 }
 
 type View struct {
-	ViewID        uint       `json:"view_id"`
-	Path          string     `json:"path"`
-	ContentTypeID uint       `json:"content_type_id"`
-	Name          string     `json:"name"`
-	Plural        string     `json:"plural"`
-	Icon          string     `json:"icon"`
-	ParentID      uint       `json:"parent_id"`
-	Children      []*View    `json:"children"`
-	Permission    Permission `json:"permission"`
+	ViewID        uint            `json:"view_id"`
+	Path          string          `json:"path"`
+	ContentTypeID uint            `json:"content_type_id"`
+	Name          string          `json:"name"`
+	Plural        string          `json:"plural"`
+	Icon          string          `json:"icon"`
+	ParentID      uint            `json:"parent_id"`
+	Children      []*View         `json:"children"`
+	Permission    Permission      `json:"permission"`
+	ViewType      models.ViewType `json:"view_type"`
 }
 
 func (view *View) AddChild(child *View) {
@@ -44,7 +45,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 
 	var data []*View
 	assesPermission := Permission{
-		Name:   models.Permission{}.GetChoiceAccess()[models.ACCESS],
+		Name:   models.PermissionAccessChoices[models.ACCESS],
 		Access: models.ACCESS,
 	}
 	if user.IsSuperUser {
@@ -89,6 +90,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 				Icon:          item.Icon,
 				ParentID:      item.ParentId,
 				Permission:    assesPermission,
+				ViewType:      item.ViewType,
 			}
 			for _, _item := range views {
 				child := stream.Filter(func(v models.Views) bool { return v.ID == _item.ID }).Out().Val()
@@ -102,6 +104,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 						Icon:          _item.Icon,
 						ParentID:      _item.ParentId,
 						Permission:    assesPermission,
+						ViewType:      _item.ViewType,
 					}
 					view.AddChild(_view)
 				}
@@ -129,6 +132,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 					ContentTypeID: permission.View.ContentTypeId,
 					Name:          permission.View.Name,
 					ParentID:      permission.View.ParentId,
+					ViewType:      permission.View.ViewType,
 					Permission: Permission{
 						Name:   permission.GetPermissionName(),
 						Access: permission.Access,
@@ -143,6 +147,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 							ContentTypeID: _permission.View.ContentTypeId,
 							Name:          _permission.View.Name,
 							ParentID:      _permission.View.ParentId,
+							ViewType:      _permission.View.ViewType,
 							Permission: Permission{
 								Name:   _permission.GetPermissionName(),
 								Access: _permission.Access,

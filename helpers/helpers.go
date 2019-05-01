@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -20,6 +21,15 @@ func ToCamelCase(str string) string {
 	})
 }
 
+func GetSearchField(fieldName string) string {
+	if match, _ := regexp.MatchString("^-", fieldName); match {
+		fieldName = ToSnakeCase(fieldName[1:]) + " desc"
+	} else {
+		fieldName = ToSnakeCase(fieldName)
+	}
+	return fieldName
+}
+
 func ToSnakeCase(str string) string {
 	matchFirstCap := regexp.MustCompile("(.)([A-Z][a-z]+)")
 	matchAllCap := regexp.MustCompile("([a-z0-9])([A-Z])")
@@ -32,6 +42,25 @@ func IsZero(v reflect.Value) bool {
 	return !v.IsValid() || reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
 }
 
+func SetManyToMany(db *gorm.DB, model interface{}, data map[string]interface{}) {
+	obj := reflect.ValueOf(model)
+	for key, value := range data {
+		sl := reflect.ValueOf(value)
+		name := ToCamelCase(key)
+		if sl.IsValid() && sl.Kind() != reflect.Slice {
+			continue
+		}
+		field := obj.Elem().FieldByName(name)
+		if field.Kind() != reflect.Slice {
+			continue
+		}
+		relatedModels := reflect.New(field.Type()).Interface()
+		db.Find(relatedModels, "id IN (?)", value)
+		db.Model(model).Association(name).Replace(relatedModels)
+		field.Set(reflect.ValueOf(relatedModels).Elem())
+	}
+}
+
 func SetFieldsForModel(model interface{}, data map[string]interface{}) error {
 	obj := reflect.ValueOf(model)
 	errs := make(map[string]string)
@@ -42,7 +71,10 @@ func SetFieldsForModel(model interface{}, data map[string]interface{}) error {
 		if kind != reflect.Invalid && kind != reflect.Slice {
 			if value.Kind() != obj.Elem().FieldByName(name).Kind() {
 				var _value interface{}
-				strValue := fmt.Sprintf("%v", value.Interface())
+				var strValue string
+				if value.IsValid() {
+					strValue = fmt.Sprintf("%v", value.Interface())
+				}
 				switch obj.Elem().FieldByName(name).Interface().(type) {
 				case uint:
 					_value, _ = strconv.Atoi(strValue)

@@ -8,28 +8,28 @@ import (
 type ViewType int
 
 const (
-	VIEW_TYPE_ALL ViewType = iota
+	VIEW_TYPE_CUSTOM ViewType = iota
+	VIEW_TYPE_ALL
 	VIEW_TYPE_EDIT
-	VIEW_TYPE_CUSTOM
 )
 
 type Views struct {
 	gorm.Model
-	Name          string   `gorm:"size:255"`
-	Icon          string   `grom:"size:255"`
-	ViewType      ViewType `gorm:"default:0" choice:"ViewTypeChoices"`
-	ParentId      uint     `gorm:"default:null"`
-	Parent        *Views
-	RoutePath     string  `gorm:"size:255"`
-	Children      []Views `gorm:"foreignkey:ParentId"`
-	ContentTypeId uint
-	ContentType   ContentType
+	Name          string      `gorm:"size:255" form:"label:Название;required"`
+	Icon          string      `grom:"size:255" form:"label:Иконка"`
+	ViewType      ViewType    `gorm:"default:0" form:"label:Тип;choice:GetViewTypeChoices;required"`
+	ParentId      uint        `gorm:"default:null"`
+	Parent        *Views      `form:"label: Родитель;"`
+	RoutePath     string      `gorm:"size:255" form:"label:URL path;required"`
+	Children      []Views     `gorm:"foreignkey:ParentId" form:"label: Дети;"`
+	ContentTypeId uint        `gorm:"default:null"`
+	ContentType   ContentType `form:"label:Таблица;"`
 }
 
 func (Views) GetViewTypeChoices() map[ViewType]string {
 	return map[ViewType]string{
-		VIEW_TYPE_ALL:    "Для списка",
-		VIEW_TYPE_EDIT:   "Для редактирования",
+		VIEW_TYPE_ALL:    "Список",
+		VIEW_TYPE_EDIT:   "Редактор",
 		VIEW_TYPE_CUSTOM: "Другое",
 	}
 }
@@ -65,6 +65,10 @@ func (Views) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		ExcludeFields: []string{"ContentTypeId", "ParentId"},
 	}
+}
+
+func (view *Views) CRUD(db *gorm.DB) types.CRUDManager {
+	return &ViewManager{db, view}
 }
 
 func (view Views) String() string {

@@ -9,8 +9,8 @@ import (
 type Photos struct {
 	gorm.Model
 	Path            string
-	CompletedWare   CompletedWare
 	CompletedWareId uint
+	CompletedWare   CompletedWare
 }
 
 func (Photos) Meta() types.ModelsMeta {
@@ -20,6 +20,15 @@ func (Photos) Meta() types.ModelsMeta {
 	}
 }
 
+func (Photos) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		ExcludeFields: []string{"CompletedWareId"},
+	}
+}
+
 func (photo Photos) String() string {
-	return fmt.Sprintf("<img style='width:100px;height:100px;border-radius:50px;' alt='%s' src='%s'/>", photo.CompletedWare.Ware.Name, photo.Path)
+	return fmt.Sprintf(
+		"<img alt='' src='%s'/>",
+		photo.Path,
+	)
 }
