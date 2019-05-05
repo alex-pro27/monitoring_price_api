@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
@@ -9,7 +8,7 @@ import (
 type Photos struct {
 	gorm.Model
 	Path            string
-	CompletedWareId uint
+	CompletedWareId uint `gorm:"default:null"`
 	CompletedWare   CompletedWare
 }
 
@@ -23,12 +22,23 @@ func (Photos) Meta() types.ModelsMeta {
 func (Photos) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		ExcludeFields: []string{"CompletedWareId"},
+		Preload:       []string{"CompletedWare.Ware"},
+		SortFields:    []string{"Path"},
+		ExtraFields: []types.AdminMetaField{
+			{
+				Name:  "CompletedWare.Ware.Name",
+				Label: "Промониторинный товар",
+				Type:  "img",
+			},
+			{
+				Name:  "Model.CreatedAt",
+				Label: "Дата создания",
+				Type:  "date",
+			},
+		},
 	}
 }
 
 func (photo Photos) String() string {
-	return fmt.Sprintf(
-		"<img alt='' src='%s'/>",
-		photo.Path,
-	)
+	return photo.Path
 }

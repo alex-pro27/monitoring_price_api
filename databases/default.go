@@ -61,73 +61,41 @@ func MigrateDefaultDB() {
 
 	db.AutoMigrate(DefaultModels...)
 
-	type UsersWorkGroups struct {
-		UserID      uint
-		WorkGroupID uint
-	}
+	db.Model(models.User{}).AddForeignKey("token_id", "tokens(id)", "CASCADE", "CASCADE")
+	db.Model(models.Ware{}).AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
+	db.Model(models.CompletedWare{}).AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "RESTRICT", "CASCADE")
+	db.Model(models.CompletedWare{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "CASCADE")
+	db.Model(models.CompletedWare{}).AddForeignKey("monitoring_type_id", "monitoring_types(id)", "RESTRICT", "CASCADE")
+	db.Model(models.CompletedWare{}).AddForeignKey("region_id", "regions(id)", "RESTRICT", "CASCADE")
+	db.Model(models.CompletedWare{}).AddForeignKey("ware_id", "wares(id)", "RESTRICT", "CASCADE")
+	db.Model(models.Photos{}).AddForeignKey("completed_ware_id", "completed_wares(id)", "CASCADE", "CASCADE")
+	db.Model(models.Views{}).AddForeignKey("parent_id", "views(id)", "RESTRICT", "CASCADE")
+	db.Model(models.Views{}).AddForeignKey("content_type_id", "content_types(id)", "RESTRICT", "CASCADE")
+	db.Model(models.Permission{}).AddForeignKey("view_id", "views(id)", "CASCADE", "CASCADE")
 
-	type MonitoringShopsSegments struct {
-		MonitoringShopID uint
-		SegmentID        uint
-	}
+	db.Table("users_work_groups").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.Table("users_work_groups").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
 
-	type MonitoringTypesPeriods struct {
-		MonitoringTypeID uint
-		PeriodID         uint
-	}
+	db.Table("monitoring_shops_segments").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
+	db.Table("monitoring_shops_segments").AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
 
-	type RolesPermissions struct {
-		RoleID       uint
-		PermissionID uint
-	}
+	db.Table("monitoring_types_periods").AddForeignKey("monitoring_type_id", "monitoring_types(id)", "CASCADE", "CASCADE")
+	db.Table("monitoring_types_periods").AddForeignKey("period_id", "periods(id)", "CASCADE", "CASCADE")
 
-	type WorkGroupsMonitoringShops struct {
-		WorkGroupID      uint
-		MonitoringShopID uint
-	}
+	db.Table("roles_permissions").AddForeignKey("role_id", "roles(id)", "CASCADE", "CASCADE")
+	db.Table("roles_permissions").AddForeignKey("permission_id", "permissions(id)", "CASCADE", "CASCADE")
 
-	type WorkGroupsRegions struct {
-		WorkGroupID uint
-		RegionsID   uint
-	}
+	db.Table("work_groups_monitoring_shops").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
+	db.Table("work_groups_monitoring_shops").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
 
-	type UsersRoles struct {
-		UserID uint
-		RoleID uint
-	}
+	db.Table("work_groups_regions").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
+	db.Table("work_groups_regions").AddForeignKey("regions_id", "regions(id)", "CASCADE", "CASCADE")
 
-	db.Model(&models.User{}).AddForeignKey("token_id", "tokens(id)", "CASCADE", "CASCADE")
-	db.Model(&models.Ware{}).AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
-	db.Model(&models.CompletedWare{}).AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "RESTRICT", "CASCADE")
-	db.Model(&models.CompletedWare{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "CASCADE")
-	db.Model(&models.CompletedWare{}).AddForeignKey("monitoring_type_id", "monitoring_types(id)", "RESTRICT", "CASCADE")
-	db.Model(&models.CompletedWare{}).AddForeignKey("region_id", "regions(id)", "RESTRICT", "CASCADE")
-	db.Model(&models.CompletedWare{}).AddForeignKey("ware_id", "wares(id)", "RESTRICT", "CASCADE")
-	db.Model(&models.Photos{}).AddForeignKey("completed_ware_id", "completed_wares(id)", "CASCADE", "CASCADE")
-	db.Model(&models.Views{}).AddForeignKey("parent_id", "views(id)", "RESTRICT", "CASCADE")
-	db.Model(&models.Views{}).AddForeignKey("content_type_id", "content_types(id)", "RESTRICT", "CASCADE")
-	db.Model(&models.Permission{}).AddForeignKey("view_id", "views(id)", "CASCADE", "CASCADE")
+	db.Table("users_roles").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.Table("users_roles").AddForeignKey("role_id", "roles(id)", "CASCADE", "CASCADE")
 
-	db.Model(&UsersWorkGroups{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
-	db.Model(&UsersWorkGroups{}).AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
-
-	db.Model(&MonitoringShopsSegments{}).AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
-	db.Model(&MonitoringShopsSegments{}).AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
-
-	db.Model(&MonitoringTypesPeriods{}).AddForeignKey("monitoring_type_id", "monitoring_types(id)", "CASCADE", "CASCADE")
-	db.Model(&MonitoringTypesPeriods{}).AddForeignKey("period_id", "periods(id)", "CASCADE", "CASCADE")
-
-	db.Model(&RolesPermissions{}).AddForeignKey("role_id", "roles(id)", "CASCADE", "CASCADE")
-	db.Model(&RolesPermissions{}).AddForeignKey("permission_id", "permissions(id)", "CASCADE", "CASCADE")
-
-	db.Model(&WorkGroupsMonitoringShops{}).AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
-	db.Model(&WorkGroupsMonitoringShops{}).AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
-
-	db.Model(&WorkGroupsRegions{}).AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
-	db.Model(&WorkGroupsRegions{}).AddForeignKey("regions_id", "regions(id)", "CASCADE", "CASCADE")
-
-	db.Model(&UsersRoles{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
-	db.Model(&UsersRoles{}).AddForeignKey("role_id", "roles(id)", "CASCADE", "CASCADE")
+	db.Table("wares_monitoring_types").AddForeignKey("ware_id", "wares(id)", "CASCADE", "CASCADE")
+	db.Table("wares_monitoring_types").AddForeignKey("monitoring_type_id", "monitoring_types(id)", "CASCADE", "CASCADE")
 
 	for _, model := range DefaultModels {
 		tableName := db.NewScope(model).GetModelStruct().TableName(db)

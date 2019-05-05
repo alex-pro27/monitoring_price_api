@@ -12,7 +12,7 @@ import (
 */
 type CompletedWare struct {
 	gorm.Model
-	UserId           uint
+	UserId           uint `gorm:"default:null"`
 	User             User
 	DateUpload       time.Time
 	Missing          bool
@@ -20,13 +20,12 @@ type CompletedWare struct {
 	Price            float64
 	MinPrice         float64
 	MaxPrice         float64
-	Description      string
 	Comment          string
-	WareId           uint
+	WareId           uint `gorm:"default:null"`
 	Ware             Ware
-	MonitoringShopId uint
+	MonitoringShopId uint `gorm:"default:null"`
 	MonitoringShop   MonitoringShop
-	MonitoringTypeId uint
+	MonitoringTypeId uint `gorm:"default:null"`
 	MonitoringType   MonitoringType
 	RegionId         uint `gorm:"default:null"`
 	Region           Regions

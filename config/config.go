@@ -25,6 +25,7 @@ type TypeConfig struct {
 		Debug     bool   `yaml:"DEBUG"`
 		Server    string `yaml:"SERVER"`
 		LogPath   string `yaml:"LOG_PATH"`
+		PinCode   string `yaml:"PINCODE"`
 	}
 
 	Session struct {

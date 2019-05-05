@@ -32,8 +32,9 @@ func (segment Segment) Serializer() types.H {
 
 func (Segment) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		OrderBy:    []string{"Name"},
-		SortFields: []string{"Name", "Code"},
+		OrderBy:      []string{"Name"},
+		SortFields:   []string{"Name", "Code"},
+		SearchFields: []string{"Name", "Code"},
 	}
 }
 

@@ -28,6 +28,10 @@ type User struct {
 	Token       Token
 }
 
+func (user User) GetFullName() string {
+	return fmt.Sprintf("%s %s", user.LastName, user.FirstName)
+}
+
 func (user *User) SetPhone(phone string) error {
 	phone = strings.Trim(phone, "")
 	if phone != "" {

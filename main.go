@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/config"
 	"github.com/alex-pro27/monitoring_price_api/databases"
+	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/middleware"
 	"github.com/alex-pro27/monitoring_price_api/routes"
@@ -20,7 +21,10 @@ func Init() {
 	router := mux.NewRouter()
 	router.Use(middleware.LoggerMiddleware)
 	routes.RegisterAdminRoutes(router)
-	routes.RegisterApiRoutes(router)
+	routes.RegisterApiV1Routes(router)
+	routes.RegisterApiV2Routes(router)
+	router.NotFoundHandler = http.HandlerFunc(common.Error404)
+	router.MethodNotAllowedHandler = http.HandlerFunc(common.Error405)
 	Server = &http.Server{
 		Addr:    config.Config.System.Server,
 		Handler: router,

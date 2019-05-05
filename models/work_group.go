@@ -8,11 +8,11 @@ import (
 
 type WorkGroup struct {
 	gorm.Model
-	Name            string           `gorm:"size:255;not null"`
-	Address         string           `gorm:"size:255"`
-	Regions         []Regions        `gorm:"many2many:work_groups_regions;"`
-	MonitoringShops []MonitoringShop `gorm:"many2many:work_groups_monitoring_shops;"`
-	Active          bool             `gorm:"default:true"`
+	Name            string           `gorm:"size:255;not null" form:"label:Название;required"`
+	Address         string           `gorm:"size:255" form:"label:Адрес"`
+	Regions         []Regions        `gorm:"many2many:work_groups_regions;" form:"label: Регионы"`
+	MonitoringShops []MonitoringShop `gorm:"many2many:work_groups_monitoring_shops;" form:"label:Магазины для мониторинга"`
+	Active          bool             `gorm:"default:true" form:"label:Активная;type:switch"`
 }
 
 func (workGroup WorkGroup) Serializer() types.H {
@@ -33,6 +33,13 @@ func (WorkGroup) Meta() types.ModelsMeta {
 	return types.ModelsMeta{
 		Name:   "Рабочая группа",
 		Plural: "Рабочие группы",
+	}
+}
+
+func (WorkGroup) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		SearchFields: []string{"Name"},
+		SortFields:   []string{"Name", "Active"},
 	}
 }
 

@@ -159,14 +159,12 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 				if view.ParentID == 0 {
 					data = append(data, view)
 				}
-
 			}
 		}
-
 	}
 	if user.IsSuperUser || len(data) > 0 {
 		common.JSONResponse(w, data)
 	} else {
-		common.Forbidden(w)
+		common.Forbidden(w, r)
 	}
 }

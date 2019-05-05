@@ -14,7 +14,7 @@ func (manager *TokenManager) NewToken(user *User) {
 	if user.TokenId != 0 {
 		manager.Delete(&Token{}, user.TokenId)
 	}
-	key := utils.GenerateToken()
+	key := utils.GenerateHash()
 	t := Token{}
 	manager.First(&t, "key = ?", key)
 	if t.ID != 0 {

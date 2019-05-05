@@ -49,7 +49,7 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 	data := common.Paginate(&users, qs, page, 100, []string{}, true)
 
 	if len(data.Result) == 0 {
-		common.Error404(w)
+		common.Error404(w, r)
 		return
 	}
 	common.JSONResponse(w, data)

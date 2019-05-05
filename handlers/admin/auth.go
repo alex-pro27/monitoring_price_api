@@ -36,7 +36,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			r.RequestURI,
 		),
 	)
-	common.Unauthorized(w, "")
+	common.Unauthorized(w, r, "")
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {

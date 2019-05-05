@@ -19,9 +19,10 @@ type ModelsMeta struct {
 	Plural string
 }
 
-type ExtraField struct {
+type AdminMetaField struct {
 	Name  string
 	Label string
+	Type  string
 }
 
 type AdminMeta struct {
@@ -31,7 +32,8 @@ type AdminMeta struct {
 	SortFields    []string
 	OrderBy       []string
 	SearchFields  []string
-	ExtraFields   []ExtraField
+	ExtraFields   []AdminMetaField
+	FilterFields  []AdminMetaField
 }
 
 type Model interface {

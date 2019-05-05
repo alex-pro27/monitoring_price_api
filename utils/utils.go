@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-func GenerateToken() string {
+func GenerateHash() string {
 	hash, err := bcrypt.GenerateFromPassword(
 		[]byte(strconv.FormatInt(time.Now().Unix(), 10)),
 		bcrypt.DefaultCost,

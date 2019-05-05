@@ -1,4 +1,4 @@
-package api
+package v2
 
 import (
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"

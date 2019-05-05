@@ -87,6 +87,8 @@ func (manager *UserManager) GetByUserName(username string) *User {
 	manager.Preload(
 		"Token",
 	).Preload(
+		"Roles",
+	).Preload(
 		"WorkGroup.Regions",
 	).First(
 		manager.self, "active = true AND user_name = ? OR email = ?", username, username,

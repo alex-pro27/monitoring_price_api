@@ -8,13 +8,14 @@ import (
 
 type Ware struct {
 	gorm.Model
-	Name        string  `gorm:"size:255" form:"label:Название товара;required"`
-	Code        string  `gorm:"size:255" form:"label: Локальный код товара;required"`
-	Barcode     string  `gorm:"size:255" form:"label: ШК товара;required"`
-	Description string  `form:"label:Описание"`
-	Segment     Segment `form:"label:Сегмент"`
-	SegmentId   uint
-	Active      bool `gorm:"default:true" form:"label:Активный;type:switch"`
+	Name           string  `gorm:"size:255" form:"label:Название товара;required"`
+	Code           string  `gorm:"size:255" form:"label: Локальный код товара;required"`
+	Barcode        string  `gorm:"size:255" form:"label: ШК товара;required"`
+	Description    string  `form:"label:Описание"`
+	Segment        Segment `form:"label:Сегмент"`
+	SegmentId      uint
+	Active         bool             `gorm:"default:true" form:"label:Активный;type:switch"`
+	MonitoringType []MonitoringType `gorm:"many2many:wares_monitoring_types"`
 }
 
 func (ware Ware) Serializer() types.H {
@@ -41,7 +42,13 @@ func (Ware) Admin() types.AdminMeta {
 		Preload:       []string{"Segment"},
 		OrderBy:       []string{"SegmentId", "Name"},
 		SortFields:    []string{"Name", "Barcode", "Active"},
-		ExtraFields: []types.ExtraField{
+		ExtraFields: []types.AdminMetaField{
+			{
+				Name:  "Segment.Name",
+				Label: "Сегмент",
+			},
+		},
+		FilterFields: []types.AdminMetaField{
 			{
 				Name:  "Segment.Name",
 				Label: "Сегмент",

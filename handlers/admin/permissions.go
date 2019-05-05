@@ -35,7 +35,7 @@ func CheckPermission(
 		}
 	}
 	if !access {
-		common.Forbidden(w)
+		common.Forbidden(w, r)
 	}
 	return access
 }

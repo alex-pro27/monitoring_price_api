@@ -308,7 +308,7 @@ func GetContentTypeFields(w http.ResponseWriter, r *http.Request) {
 		}
 		common.JSONResponse(w, data)
 	} else {
-		common.Forbidden(w)
+		common.Forbidden(w, r)
 	}
 }
 
@@ -321,7 +321,7 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 	model := databases.FindModelByContentType(db, contentType.Table)
 
 	if model == nil {
-		common.ErrorResponse(w, "Model not found")
+		common.ErrorResponse(w, r, "Model not found")
 		return
 	}
 
@@ -345,7 +345,7 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "PUT" || r.Method == "POST" {
 		fields = make(types.H)
 		if err := json.Unmarshal([]byte(r.PostFormValue("fields")), &fields); err != nil {
-			common.ErrorResponse(w, err.Error())
+			common.ErrorResponse(w, r, err.Error())
 			return
 		}
 	}
@@ -355,14 +355,14 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		id, _ = strconv.Atoi(vars["id"])
 		db.First(model, id)
 		if obj.Elem().FieldByName("ID").Interface().(uint) == 0 {
-			common.ErrorResponse(w, "Object not found")
+			common.ErrorResponse(w, r, "Object not found")
 			return
 		}
 	}
 	if crud.Kind() == reflect.Invalid {
 		if r.Method == "POST" || r.Method == "PUT" {
 			if err = helpers.SetFieldsForModel(model, fields); err != nil {
-				common.ErrorResponse(w, err.Error())
+				common.ErrorResponse(w, r, err.Error())
 				return
 			}
 		}
@@ -370,7 +370,7 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		case "PUT":
 			if res := db.FirstOrCreate(model, model); res.Error != nil {
 				logger.Logger.Error(res.Error)
-				common.ErrorResponse(w, "Ошибка добавления записи")
+				common.ErrorResponse(w, r, "Ошибка добавления записи")
 				return
 			}
 			helpers.SetManyToMany(db, model, fields)
@@ -378,7 +378,7 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		case "POST":
 			if res := db.Save(model); res.Error != nil {
 				logger.Logger.Error(res.Error)
-				common.ErrorResponse(w, "Ошибка обновления записи")
+				common.ErrorResponse(w, r, "Ошибка обновления записи")
 				return
 			}
 			helpers.SetManyToMany(db, model, fields)
@@ -386,7 +386,7 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		case "DELETE":
 			if res := db.Delete(model, id); res.Error != nil {
 				logger.Logger.Error(res.Error)
-				common.ErrorResponse(w, "Ошибка удаления записи")
+				common.ErrorResponse(w, r, "Ошибка удаления записи")
 			}
 			break
 		}
@@ -395,19 +395,19 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "PUT":
 			if err := manager.Create(fields); err != nil {
-				common.ErrorResponse(w, err.Error())
+				common.ErrorResponse(w, r, err.Error())
 				return
 			}
 			break
 		case "POST":
 			if err := manager.Update(fields); err != nil {
-				common.ErrorResponse(w, err.Error())
+				common.ErrorResponse(w, r, err.Error())
 				return
 			}
 			break
 		case "DELETE":
 			if err := manager.Delete(); err != nil {
-				common.ErrorResponse(w, err.Error())
+				common.ErrorResponse(w, r, err.Error())
 				return
 			}
 			break
@@ -470,14 +470,14 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 
 			if orderBy == "" {
 				for _, fieldName := range adminMeta.OrderBy {
-					fieldName = helpers.GetSearchField(fieldName)
+					fieldName = helpers.GetSortField(fieldName)
 					qs = qs.Order(fieldName)
 				}
 			} else {
 				for _, ord := range strings.Split(orderBy, ",") {
 					for _, fieldName := range adminMeta.SortFields {
 						if strings.Index(ord, helpers.ToSnakeCase(fieldName)) > -1 {
-							ord = helpers.GetSearchField(ord)
+							ord = helpers.GetSortField(ord)
 							qs = qs.Order(ord)
 						}
 					}
@@ -498,7 +498,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 		}
 		var result []interface{}
 		short, _ := strconv.ParseBool(r.FormValue("short"))
-		isShort := short || len(adminMeta.OrderBy) == 0
+		isShort := short || !(len(adminMeta.SortFields) > 0 || len(adminMeta.ExtraFields) > 0)
 		for _, item := range paginateData.Result {
 			iobj := reflect.ValueOf(item)
 			strMethod := iobj.MethodByName("String")
@@ -548,6 +548,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 		}
 
 		meta["short"] = isShort
+		meta["available_search"] = len(adminMeta.SearchFields) > 0
 		data := types.H{
 			"meta":     meta,
 			"paginate": paginateData.Paginate,
@@ -586,6 +587,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 				} else {
 					_extraField["name"] = extraField.Name
 				}
+				_extraField["type"] = extraField.Type
 				extraFields = append(extraFields, _extraField)
 			}
 			data["sort_fields"] = sortFields
@@ -593,6 +595,6 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 		}
 		common.JSONResponse(w, data)
 	} else {
-		common.Forbidden(w)
+		common.Forbidden(w, r)
 	}
 }

@@ -21,7 +21,7 @@ func ToCamelCase(str string) string {
 	})
 }
 
-func GetSearchField(fieldName string) string {
+func GetSortField(fieldName string) string {
 	if match, _ := regexp.MatchString("^-", fieldName); match {
 		fieldName = ToSnakeCase(fieldName[1:]) + " desc"
 	} else {
@@ -79,6 +79,9 @@ func SetFieldsForModel(model interface{}, data map[string]interface{}) error {
 				case uint:
 					_value, _ = strconv.Atoi(strValue)
 					_value = uint(_value.(int))
+					break
+				case int:
+					_value, _ = strconv.Atoi(strValue)
 					break
 				case int32:
 					_value, _ = strconv.ParseInt(strValue, 10, 32)
