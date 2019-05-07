@@ -15,7 +15,7 @@ type User struct {
 	FirstName   string      `gorm:"size:255;not null" form:"required;label:Имя"`
 	LastName    string      `gorm:"size:255;" form:"required;label:Фамилия"`
 	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;disabled;label:Login"`
-	Password    string      `gorm:"size:60;not null" form:"required"`
+	Password    string      `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
 	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
 	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
 	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
@@ -93,7 +93,7 @@ func (user User) Meta() types.ModelsMeta {
 
 func (user User) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		ExcludeFields: []string{"Password", "TokenId", "IsSuperUser", "Token"},
+		ExcludeFields: []string{"TokenId", "IsSuperUser", "Token"},
 		OrderBy:       []string{"LastName", "FirstName"},
 		SearchFields:  []string{"LastName", "FirstName", "Email", "Phone"},
 		SortFields:    []string{"LastName", "FirstName", "Email"},

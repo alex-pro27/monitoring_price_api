@@ -117,6 +117,7 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 
 		disabled, _ := strconv.ParseBool(form["disabled"])
 		required, _ := strconv.ParseBool(form["required"])
+		empty, _ := strconv.ParseBool(form["empty"])
 
 		field := Field{
 			Name:     obj.Type().Field(i).Name,
@@ -143,117 +144,124 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 				continue
 			}
 			structField := structFields[i+3]
-			field.Value = obj.Field(i).Interface()
 			defaultValue := structField.TagSettings["DEFAULT"]
 			rel := structField.Relationship
 
-			if rel != nil {
-				field.Type = rel.Kind
-				value := obj.Field(i).Interface()
-				field.ContentType = db.NewScope(value).GetModelStruct().TableName(db)
-				if ID != 0 {
-					switch rel.Kind {
-					case "many_to_many":
-						var idx []uint
-						tableName := rel.JoinTableHandler.Table(db)
-						foreignKey := rel.JoinTableHandler.DestinationForeignKeys()[0].DBName
-						db.Table(tableName).Where(
-							fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]), ID,
-						).Pluck(foreignKey, &idx)
-						field.Value = getShortInfo(db, value, "id IN (?)", idx)
-						break
-					case "has_many":
-						field.Value = getShortInfo(
-							db, obj.Field(i).Interface(),
-							fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]),
-							ID,
-						)
-						break
-					case "belongs_to":
-						associationID := obj.FieldByName(rel.ForeignFieldNames[0]).Interface().(uint)
-						if obj.Field(i).Kind() == reflect.Ptr {
-							value = reflect.New(obj.Type().Field(i).Type.Elem()).Interface()
+			if !empty {
+				field.Value = obj.Field(i).Interface()
+				if rel != nil {
+					field.Type = rel.Kind
+					value := obj.Field(i).Interface()
+					field.ContentType = db.NewScope(value).GetModelStruct().TableName(db)
+					if ID != 0 {
+						switch rel.Kind {
+						case "many_to_many":
+							var idx []uint
+							tableName := rel.JoinTableHandler.Table(db)
+							foreignKey := rel.JoinTableHandler.DestinationForeignKeys()[0].DBName
+							db.Table(tableName).Where(
+								fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]), ID,
+							).Pluck(foreignKey, &idx)
+							field.Value = getShortInfo(db, value, "id IN (?)", idx)
+							break
+						case "has_many":
+							field.Value = getShortInfo(
+								db, obj.Field(i).Interface(),
+								fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]),
+								ID,
+							)
+							break
+						case "belongs_to":
+							associationID := obj.FieldByName(rel.ForeignFieldNames[0]).Interface().(uint)
+							if obj.Field(i).Kind() == reflect.Ptr {
+								value = reflect.New(obj.Type().Field(i).Type.Elem()).Interface()
+							}
+							field.Value = getShortInfo(db, value, "id = ?", associationID)
+							if len(field.Value.([]types.H)) > 0 {
+								field.Value = field.Value.([]types.H)[0]
+							}
+							break
 						}
-						field.Value = getShortInfo(db, value, "id = ?", associationID)
-						if len(field.Value.([]types.H)) > 0 {
-							field.Value = field.Value.([]types.H)[0]
+					} else {
+						field.Value = nil
+					}
+				} else if form["choice"] != "" {
+					methodChoice := obj.MethodByName(form["choice"])
+					if methodChoice.Kind() != reflect.Invalid {
+						field.Type = "choice"
+						label := "No name"
+						methodLabel := obj.MethodByName(fmt.Sprintf("Get%sName", obj.Type().Field(i).Name))
+						if methodLabel.Kind() != reflect.Invalid {
+							label = methodLabel.Call(nil)[0].Interface().(string)
 						}
-						break
+						field.Value = map[string]interface{}{
+							"label": label,
+							"value": obj.Field(i).Interface(),
+						}
+						choices := methodChoice.Call(nil)[0]
+						for _, k := range choices.MapKeys() {
+							field.Options = append(field.Options, map[string]interface{}{
+								"value": k.Interface(),
+								"label": choices.MapIndex(k).Interface(),
+							})
+						}
 					}
 				} else {
-					field.Value = nil
-				}
-			} else if form["choice"] != "" {
-				methodChoice := obj.MethodByName(form["choice"])
-				if methodChoice.Kind() != reflect.Invalid {
-					field.Type = "choice"
-					label := "No name"
-					methodLabel := obj.MethodByName(fmt.Sprintf("Get%sName", obj.Type().Field(i).Name))
-					if methodLabel.Kind() != reflect.Invalid {
-						label = methodLabel.Call(nil)[0].Interface().(string)
-					}
-					field.Value = map[string]interface{}{
-						"label": label,
-						"value": obj.Field(i).Interface(),
-					}
-					choices := methodChoice.Call(nil)[0]
-					for _, k := range choices.MapKeys() {
-						field.Options = append(field.Options, map[string]interface{}{
-							"value": k.Interface(),
-							"label": choices.MapIndex(k).Interface(),
-						})
-					}
-				}
-			} else {
-				switch obj.Field(i).Interface().(type) {
-				case int, uint, int32, int64, float32, float64:
-					field.Type = "number"
-					if ID == 0 {
-						field.Value, _ = strconv.Atoi(defaultValue)
-					}
-					break
-				case time.Time:
-					if form["type"] == "date" {
-						field.Type = "date"
-					} else {
-						field.Type = "datetime-local"
-					}
-
-					if ID == 0 {
-						if strings.Index(defaultValue, "now") > -1 {
-							field.Value = time.Now().Format(helpers.ISO8601)
-						} else {
-							field.Value = defaultValue
+					switch obj.Field(i).Interface().(type) {
+					case int, uint, int32, int64, float32, float64:
+						field.Type = "number"
+						if ID == 0 {
+							field.Value, _ = strconv.Atoi(defaultValue)
 						}
-					} else {
-						field.Value = field.Value.(time.Time).Format(helpers.ISO8601)
+						break
+					case time.Time:
+						if form["type"] == "date" {
+							field.Type = "date"
+						} else {
+							field.Type = "datetime-local"
+						}
+
+						if ID == 0 {
+							if strings.Index(defaultValue, "now") > -1 {
+								field.Value = time.Now().Format(helpers.ISO8601)
+							} else {
+								field.Value = defaultValue
+							}
+						} else {
+							field.Value = field.Value.(time.Time).Format(helpers.ISO8601)
+						}
+						break
+					case string:
+						size, _ := strconv.Atoi(structField.TagSettings["SIZE"])
+						t := structField.TagSettings["TYPE"]
+						if form["type"] != "password" {
+							if (size == 0 || size > 255) && strings.Index(t, "varchar") == -1 {
+								field.Type = "text"
+							} else {
+								field.Type = "string"
+							}
+							if ID == 0 {
+								field.Value = defaultValue
+							}
+						} else {
+							field.Type = form["type"]
+							field.Value = nil
+						}
+						break
+					case bool:
+						if form["type"] == "switch" {
+							field.Type = "switch"
+						} else {
+							field.Type = "checkbox"
+						}
+						if ID == 0 {
+							field.Value, _ = strconv.ParseBool(defaultValue)
+						}
+						break
+					case pq.Int64Array:
+						field.Name = "array"
+						break
 					}
-					break
-				case string:
-					size, _ := strconv.Atoi(structField.TagSettings["SIZE"])
-					t := structField.TagSettings["TYPE"]
-					if (size == 0 || size > 255) && strings.Index(t, "varchar") == -1 {
-						field.Type = "text"
-					} else {
-						field.Type = "string"
-					}
-					if ID == 0 {
-						field.Value = defaultValue
-					}
-					break
-				case bool:
-					if form["type"] == "switch" {
-						field.Type = "switch"
-					} else {
-						field.Type = "checkbox"
-					}
-					if ID == 0 {
-						field.Value, _ = strconv.ParseBool(defaultValue)
-					}
-					break
-				case pq.Int64Array:
-					field.Name = "array"
-					break
 				}
 			}
 		}
@@ -522,26 +530,8 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 					item[name] = iobj.FieldByName(fieldName).Interface()
 				}
 				for _, extraField := range adminMeta.ExtraFields {
-					_fieldNames := strings.Split(extraField.Name, ".")
-					if len(_fieldNames) > 1 {
-						var value reflect.Value
-						name := strings.Builder{}
-						if iobj.FieldByName(_fieldNames[0]).Kind() == reflect.Struct {
-							for i, fieldName := range _fieldNames {
-								if i > 0 {
-									name.Write([]byte("."))
-									value = value.FieldByName(fieldName)
-								} else {
-									value = iobj.FieldByName(fieldName)
-								}
-								name.Write([]byte(helpers.ToSnakeCase(fieldName)))
-							}
-							item[name.String()] = value.Interface()
-						}
-					} else {
-						name := helpers.ToSnakeCase(extraField.Name)
-						item[name] = iobj.FieldByName(extraField.Name).Interface()
-					}
+					name, value := helpers.GetValue(iobj, extraField.Name)
+					item[name] = value
 				}
 				result = append(result, item)
 			}
@@ -585,7 +575,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 					}
 					_extraField["name"] = name.String()
 				} else {
-					_extraField["name"] = extraField.Name
+					_extraField["name"] = helpers.ToSnakeCase(extraField.Name)
 				}
 				_extraField["type"] = extraField.Type
 				extraFields = append(extraFields, _extraField)

@@ -17,6 +17,7 @@ type Views struct {
 	gorm.Model
 	Name          string      `gorm:"size:255" form:"label:Название;required"`
 	Icon          string      `grom:"size:255" form:"label:Иконка"`
+	Menu          bool        `gorm:"default:false" form:"label:Показать в меню;type:switch"`
 	ViewType      ViewType    `gorm:"default:0" form:"label:Тип;choice:GetViewTypeChoices;required"`
 	ParentId      uint        `gorm:"default:null"`
 	Parent        *Views      `form:"label: Родитель;"`

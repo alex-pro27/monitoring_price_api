@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
+	"strings"
 )
 
 type Ware struct {
@@ -16,6 +17,14 @@ type Ware struct {
 	SegmentId      uint
 	Active         bool             `gorm:"default:true" form:"label:Активный;type:switch"`
 	MonitoringType []MonitoringType `gorm:"many2many:wares_monitoring_types"`
+}
+
+func (ware Ware) GetMonitoringType() string {
+	var names []string
+	for _, mt := range ware.MonitoringType {
+		names = append(names, mt.Name)
+	}
+	return strings.Join(names, ", ")
 }
 
 func (ware Ware) Serializer() types.H {
@@ -39,13 +48,17 @@ func (Ware) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		ExcludeFields: []string{"SegmentId"},
 		SearchFields:  []string{"Name", "Barcode"},
-		Preload:       []string{"Segment"},
+		Preload:       []string{"Segment", "MonitoringType"},
 		OrderBy:       []string{"SegmentId", "Name"},
 		SortFields:    []string{"Name", "Barcode", "Active"},
 		ExtraFields: []types.AdminMetaField{
 			{
 				Name:  "Segment.Name",
 				Label: "Сегмент",
+			},
+			{
+				Name:  "GetMonitoringType",
+				Label: "Типы мониторинга",
 			},
 		},
 		FilterFields: []types.AdminMetaField{

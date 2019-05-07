@@ -42,6 +42,35 @@ func IsZero(v reflect.Value) bool {
 	return !v.IsValid() || reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
 }
 
+func GetValue(value reflect.Value, fieldName string) (string, interface{}) {
+	_fieldNames := strings.Split(fieldName, ".")
+	name := strings.Builder{}
+	var _getValue func(string, reflect.Value) (string, reflect.Value)
+	_getValue = func(name string, obj reflect.Value) (string, reflect.Value) {
+		if obj.IsValid() {
+			method := obj.MethodByName(name)
+			if method.Kind() != reflect.Invalid {
+				obj = method.Call(nil)[0]
+			} else {
+				if obj.Kind() == reflect.Ptr {
+					obj = obj.Elem()
+				}
+				obj = obj.FieldByName(name)
+			}
+		}
+		return ToSnakeCase(name), obj
+	}
+	for i, _fieldName := range _fieldNames {
+		_name, _value := _getValue(_fieldName, value)
+		value = _value
+		if i > 0 {
+			name.Write([]byte("."))
+		}
+		name.Write([]byte(_name))
+	}
+	return name.String(), value.Interface()
+}
+
 func SetManyToMany(db *gorm.DB, model interface{}, data map[string]interface{}) {
 	obj := reflect.ValueOf(model)
 	for key, value := range data {

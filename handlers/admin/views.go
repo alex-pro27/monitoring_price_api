@@ -29,6 +29,7 @@ type View struct {
 	Children      []*View         `json:"children"`
 	Permission    Permission      `json:"permission"`
 	ViewType      models.ViewType `json:"view_type"`
+	Menu          bool            `json:"menu"`
 }
 
 func (view *View) AddChild(child *View) {
@@ -131,8 +132,10 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 					Path:          permission.View.RoutePath,
 					ContentTypeID: permission.View.ContentTypeId,
 					Name:          permission.View.Name,
+					Icon:          permission.View.Icon,
 					ParentID:      permission.View.ParentId,
 					ViewType:      permission.View.ViewType,
+					Menu:          permission.View.Menu,
 					Permission: Permission{
 						Name:   permission.GetPermissionName(),
 						Access: permission.Access,
@@ -146,8 +149,10 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 							Path:          _permission.View.RoutePath,
 							ContentTypeID: _permission.View.ContentTypeId,
 							Name:          _permission.View.Name,
+							Icon:          _permission.View.Icon,
 							ParentID:      _permission.View.ParentId,
 							ViewType:      _permission.View.ViewType,
+							Menu:          _permission.View.Menu,
 							Permission: Permission{
 								Name:   _permission.GetPermissionName(),
 								Access: _permission.Access,
