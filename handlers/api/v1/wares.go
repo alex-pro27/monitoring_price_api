@@ -65,7 +65,7 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 	).Joins(
 		"INNER JOIN regions r ON r.id = wgr.regions_id",
 	).Where(
-		"wg.name::text ~* ? AND r.name::text ~* ? AND p.id IN (?)",
+		"wares.active = true AND wg.name::text ~* ? AND r.name::text ~* ? AND p.id IN (?)",
 		vars["shop"],
 		regions,
 		periodsIDX,

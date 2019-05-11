@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/config"
+	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/utils"
@@ -14,13 +15,11 @@ func LoggerMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				logger.Logger.Errorf("IP:%s - %s: %s%s - %v", utils.GetIPAddress(r), r.Method, r.Host, r.URL.Path, rec)
 				if config.Config.System.Debug {
+					logger.Logger.Errorf("500 IP:%s - %s: %s%s - %v", utils.GetIPAddress(r), r.Method, r.Host, r.URL.Path, rec)
 					panic(rec)
 				} else {
-					w.WriteHeader(http.StatusInternalServerError)
-					_, err := w.Write([]byte("500 Internal server error"))
-					logger.HandleError(err)
+					common.InternalServerError(w, r, rec)
 				}
 			}
 		}()

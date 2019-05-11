@@ -91,7 +91,7 @@ func (manager *UserManager) GetByUserName(username string) *User {
 	).Preload(
 		"WorkGroup.Regions",
 	).First(
-		manager.self, "active = true AND user_name = ? OR email = ?", username, username,
+		manager.self, "active = true AND user_name ilike ? OR email ilike ?", username, username,
 	)
 	return manager.self
 }

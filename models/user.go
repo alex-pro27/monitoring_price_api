@@ -14,7 +14,7 @@ type User struct {
 	gorm.Model
 	FirstName   string      `gorm:"size:255;not null" form:"required;label:Имя"`
 	LastName    string      `gorm:"size:255;" form:"required;label:Фамилия"`
-	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;disabled;label:Login"`
+	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;label:Login"`
 	Password    string      `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
 	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
 	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
@@ -32,11 +32,19 @@ func (user User) GetFullName() string {
 	return fmt.Sprintf("%s %s", user.LastName, user.FirstName)
 }
 
+func (user User) GetWorkGroups() string {
+	names := make([]string, 0)
+	for _, wg := range user.WorkGroup {
+		names = append(names, wg.Name)
+	}
+	return strings.Join(names, ", ")
+}
+
 func (user *User) SetPhone(phone string) error {
 	phone = strings.Trim(phone, "")
 	if phone != "" {
 		if matched, _ := regexp.MatchString("^\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}", phone); !matched {
-			return errors.New("not valid phone")
+			return errors.New("Неверно заполнен номер телефона")
 		}
 	}
 	user.Phone = phone
@@ -44,9 +52,9 @@ func (user *User) SetPhone(phone string) error {
 }
 
 func (user *User) SetUserName(username string) error {
-	username = strings.ToLower(strings.Trim(username, ""))
+	username = strings.Trim(username, "")
 	if len(username) < 3 {
-		return errors.New("not valid username")
+		return errors.New("Login должен состоять минимум из 3х символов")
 	}
 	user.UserName = username
 	return nil
@@ -59,7 +67,7 @@ func (user *User) SetEmail(email string) error {
 		email,
 	)
 	if !matched {
-		return errors.New("not valid email")
+		return errors.New("Неверно заполнен email")
 	}
 	user.Email = email
 	return nil
@@ -67,7 +75,7 @@ func (user *User) SetEmail(email string) error {
 
 func (user *User) SetPassword(password string) error {
 	if password = strings.Trim(password, ""); len(password) < 3 {
-		return errors.New("not valid password")
+		return errors.New("Пароль должен состоять минимум из 3х символов")
 	}
 	user.Password = password
 	user.HashPassword()
@@ -93,10 +101,21 @@ func (user User) Meta() types.ModelsMeta {
 
 func (user User) Admin() types.AdminMeta {
 	return types.AdminMeta{
+		Preload:       []string{"WorkGroup"},
 		ExcludeFields: []string{"TokenId", "IsSuperUser", "Token"},
 		OrderBy:       []string{"LastName", "FirstName"},
 		SearchFields:  []string{"LastName", "FirstName", "Email", "Phone"},
-		SortFields:    []string{"LastName", "FirstName", "Email"},
+		SortFields: []types.AdminMetaField{
+			{Name: "LastName"},
+			{Name: "FirstName"},
+			{Name: "Email"},
+		},
+		ExtraFields: []types.AdminMetaField{
+			{
+				Name:  "GetWorkGroups",
+				Label: "Рабочая группа",
+			},
+		},
 	}
 }
 

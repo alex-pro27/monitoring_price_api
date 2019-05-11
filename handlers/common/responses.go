@@ -1,14 +1,24 @@
 package common
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/config"
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/alex-pro27/monitoring_price_api/utils"
+	"github.com/gorilla/mux"
+	"github.com/nfnt/resize"
+	"image"
+	"image/jpeg"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path"
+	"regexp"
+	"strconv"
 )
 
 func JSONResponse(w http.ResponseWriter, data interface{}) {
@@ -28,12 +38,71 @@ func JSONResponse(w http.ResponseWriter, data interface{}) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(body)
 	if err != nil {
 		log.Printf("Failed to write the response body: %v", err)
 		return
 	}
+}
+
+func FileResponse(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	media := config.Config.Static.MediaRoot
+	isThumb, _ := regexp.MatchString(".+_thumb\\.(jpe?g|png|gif)", name)
+	var f *os.File
+	f, err := os.Open(path.Join(media, name))
+	buffer := new(bytes.Buffer)
+	bufferBytes := make([]byte, 0)
+	if err != nil && !isThumb {
+		Error404(w, r)
+		return
+	}
+	if isThumb {
+		f, err = os.Open(path.Join(media, name))
+		if err != nil {
+			pattern := regexp.MustCompile("(.*)_thumb\\.(jpe?g|png|gif)")
+			fname := pattern.ReplaceAllString(name, "${1}.${2}")
+			f, err = os.Open(path.Join(media, fname))
+			if err != nil {
+				Error404(w, r)
+				return
+			}
+			img, _, err := image.Decode(f)
+			if err != nil {
+				panic(err)
+			}
+			newImage := resize.Resize(160, 0, img, resize.Lanczos3)
+			if err = jpeg.Encode(buffer, newImage, nil); err != nil {
+				panic(err)
+			}
+			f, _ = os.OpenFile(path.Join(media, name), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+			bufferBytes = buffer.Bytes()
+			if _, err := io.Copy(f, buffer); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	if len(bufferBytes) == 0 {
+		if _, err := io.Copy(buffer, f); err != nil {
+			panic(err)
+		}
+		bufferBytes = buffer.Bytes()
+	}
+
+	itoa := strconv.Itoa(len(bufferBytes))
+	w.Header().Set("Content-Type", itoa)
+	w.Header().Set("Content-Length", itoa)
+	_, err = w.Write(bufferBytes)
+	logger.HandleError(err)
+	defer logger.HandleError(f.Close())
+}
+
+func InternalServerError(w http.ResponseWriter, r *http.Request, rec interface{}) {
+	w.WriteHeader(http.StatusInternalServerError)
+	_, e := w.Write([]byte("500 Internal Server Error"))
+	logger.Logger.Errorf("500 - IP:%s - %s: %s%s - %v", utils.GetIPAddress(r), r.Method, r.Host, r.URL.Path, rec)
+	logger.HandleError(e)
 }
 
 func Error404(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +139,6 @@ func Unauthorized(w http.ResponseWriter, r *http.Request, message string) {
 func ErrorResponse(w http.ResponseWriter, r *http.Request, format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
 	logger.Logger.Warningf("IP:%s - %s: %s%s - %s", utils.GetIPAddress(r), r.Method, r.Host, r.URL.Path, message)
-	w.WriteHeader(http.StatusOK)
 	JSONResponse(w, types.H{
 		"error":   true,
 		"message": message,

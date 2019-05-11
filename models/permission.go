@@ -25,8 +25,8 @@ var PermissionAccessChoices = map[PermissionAccess]string{
 type Permission struct {
 	gorm.Model
 	ViewId uint
-	View   Views            `gorm:"foreignkey:ViewId"`
-	Access PermissionAccess `gorm:"default:3" form:"choice:GetChoiceAccess"`
+	View   Views            `gorm:"foreignkey:ViewId" form:"label:Представление"`
+	Access PermissionAccess `gorm:"default:3" form:"choice:GetChoiceAccess" form:"label:Доступ"`
 }
 
 func (Permission) GetChoiceAccess() map[PermissionAccess]string {
@@ -56,6 +56,17 @@ func (Permission) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		ExcludeFields: []string{"ViewId"},
 		Preload:       []string{"View"},
+		OrderBy:       []string{"ViewId"},
+		ExtraFields: []types.AdminMetaField{
+			{
+				Name:  "View.Name",
+				Label: "Представление",
+			},
+			{
+				Name:  "GetPermissionName",
+				Label: "Доступ",
+			},
+		},
 	}
 }
 

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/alex-pro27/monitoring_price_api/handlers/admin"
+	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/middleware"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/gorilla/mux"
@@ -60,6 +61,11 @@ func RegisterAdminRoutes(r *mux.Router) {
 			Path:    "/content-type/{id:[0-9]+}",
 			Handler: admin.CRUDContentType,
 			Methods: []string{"POST", "DELETE"},
+		},
+		{
+			Path:    "/media/{name}",
+			Handler: common.FileResponse,
+			Methods: []string{"GET"},
 		},
 	}
 

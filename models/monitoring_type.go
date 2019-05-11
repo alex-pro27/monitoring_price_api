@@ -10,8 +10,9 @@ import (
 */
 type MonitoringType struct {
 	gorm.Model
-	Name    string   `gorm:"size:255;not null"`
-	Periods []Period `gorm:"many2many:monitoring_types_periods"`
+	Name    string   `gorm:"size:255;not null" form:"label:Имя"`
+	Periods []Period `gorm:"many2many:monitoring_types_periods" form:"label:Перидоы"`
+	Active  bool     `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (MonitoringType) Meta() types.ModelsMeta {

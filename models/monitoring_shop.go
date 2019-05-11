@@ -14,27 +14,28 @@ type MonitoringShop struct {
 	/**
 	Название
 	*/
-	Name string `gorm:"size:255"`
+	Name string `gorm:"size:255" form:"label:Имя;required"`
 	/**
 	Адрес магазина
 	*/
-	Address string `gorm:"size:255"`
+	Address string `gorm:"size:255" form:"label:Адрес"`
 	/**
 	Код магазина(для 1с)
 	*/
-	Code string `gorm:"size:255"`
+	Code string `gorm:"size:255" form:"label:Код"`
 	/**
 	Обязательность фотографирования
 	*/
-	IsMustPhoto bool
+	IsMustPhoto bool `form:"label:Обязательность фотографирования"`
 	/**
 	Группа мониторинга
 	*/
-	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;"`
+	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;" form:"label:Рабочая группа"`
 	/**
 	Сегменты
 	*/
-	Segments []Segment `gorm:"many2many:monitoring_shops_segments;"`
+	Segments []Segment `gorm:"many2many:monitoring_shops_segments;" form:"label:Сегменты"`
+	Active   bool      `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (monitoringShop MonitoringShop) Serializer() types.H {
@@ -56,6 +57,16 @@ func (MonitoringShop) Meta() types.ModelsMeta {
 	return types.ModelsMeta{
 		Name:   "Магазин для мониторинга",
 		Plural: "Магазины для мониторинга",
+	}
+}
+
+func (MonitoringShop) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		SearchFields: []string{"Name", "Address"},
+		SortFields: []types.AdminMetaField{
+			{Name: "Name"},
+			{Name: "Address"},
+		},
 	}
 }
 

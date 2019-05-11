@@ -54,34 +54,12 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 		db.Preload("ContentType").Preload("Children").Find(&views)
 		var contentTypes []models.ContentType
 		db.Find(&contentTypes)
-
-		for _, contentType := range contentTypes {
-			model := databases.FindModelByContentType(db, contentType.Table)
-			model = reflect.New(reflect.TypeOf(model)).Interface()
-			obj := reflect.ValueOf(model)
-			methodGetMeta := obj.MethodByName("Meta")
-			var name, plural string
-			if methodGetMeta.Kind() != reflect.Invalid {
-				modelMeta := methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta)
-				name = modelMeta.Name
-				plural = modelMeta.Plural
-			} else {
-				name = obj.Elem().Type().Name()
-				plural = name + "s"
-			}
-			path := strings.Replace(contentType.Table, "_", "-", -1)
-			view := &View{
-				ContentTypeID: contentType.ID,
-				Name:          name,
-				Plural:        plural,
-				Path:          "/" + path,
-				Permission:    assesPermission,
-			}
-			data = append(data, view)
-		}
-
+		streamContentTypes := koazee.StreamOf(contentTypes)
 		for _, item := range views {
 			stream := koazee.StreamOf(item.Children)
+			streamContentTypes = streamContentTypes.Filter(func(ct models.ContentType) bool {
+				return ct.ID != item.ContentType.ID
+			}).Do()
 			view := &View{
 				ViewID:        item.ID,
 				ContentTypeID: item.ContentType.ID,
@@ -113,6 +91,30 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 			if view.ParentID == 0 {
 				data = append(data, view)
 			}
+		}
+		for _, contentType := range streamContentTypes.Out().Val().([]models.ContentType) {
+			model := databases.FindModelByContentType(db, contentType.Table)
+			model = reflect.New(reflect.TypeOf(model)).Interface()
+			obj := reflect.ValueOf(model)
+			methodGetMeta := obj.MethodByName("Meta")
+			var name, plural string
+			if methodGetMeta.Kind() != reflect.Invalid {
+				modelMeta := methodGetMeta.Call(nil)[0].Interface().(types.ModelsMeta)
+				name = modelMeta.Name
+				plural = modelMeta.Plural
+			} else {
+				name = obj.Elem().Type().Name()
+				plural = name + "s"
+			}
+			path := strings.Replace(contentType.Table, "_", "-", -1)
+			view := &View{
+				ContentTypeID: contentType.ID,
+				Name:          name,
+				Plural:        plural,
+				Path:          "/" + path,
+				Permission:    assesPermission,
+			}
+			data = append(data, view)
 		}
 	} else {
 		var roles []models.Role

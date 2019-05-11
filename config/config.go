@@ -26,6 +26,7 @@ type TypeConfig struct {
 		Server    string `yaml:"SERVER"`
 		LogPath   string `yaml:"LOG_PATH"`
 		PinCode   string `yaml:"PINCODE"`
+		ServerUrl string `yaml:"SERVER_URL"`
 	}
 
 	Session struct {

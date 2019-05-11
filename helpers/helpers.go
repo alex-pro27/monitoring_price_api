@@ -68,7 +68,11 @@ func GetValue(value reflect.Value, fieldName string) (string, interface{}) {
 		}
 		name.Write([]byte(_name))
 	}
-	return name.String(), value.Interface()
+	var val interface{}
+	if value.IsValid() {
+		val = value.Interface()
+	}
+	return name.String(), val
 }
 
 func SetManyToMany(db *gorm.DB, model interface{}, data map[string]interface{}) {
@@ -97,8 +101,9 @@ func SetFieldsForModel(model interface{}, data map[string]interface{}) error {
 		value := reflect.ValueOf(value)
 		name := ToCamelCase(key)
 		kind := obj.Elem().FieldByName(name).Kind()
-		if kind != reflect.Invalid && kind != reflect.Slice {
-			if value.Kind() != obj.Elem().FieldByName(name).Kind() {
+
+		if kind != reflect.Invalid {
+			if value.Kind() != obj.Elem().FieldByName(name).Kind() && kind != reflect.Slice {
 				var _value interface{}
 				var strValue string
 				if value.IsValid() {
@@ -139,7 +144,22 @@ func SetFieldsForModel(model interface{}, data map[string]interface{}) error {
 					errs[key] = e.(error).Error()
 				}
 			} else {
-				obj.Elem().FieldByName(name).Set(value)
+				if kind != reflect.Slice {
+					obj.Elem().FieldByName(name).Set(value)
+				}
+			}
+		}
+	}
+
+	for i := 0; i < obj.Elem().NumField(); i++ {
+		fieldType := obj.Elem().Type().Field(i)
+		field := obj.Elem().Field(i)
+		key := ToSnakeCase(fieldType.Name)
+		if IsZero(field) {
+			form := ParseTag(fieldType.Tag.Get("form"))
+			required, _ := strconv.ParseBool(form["required"])
+			if required {
+				errs[key] = "обязательное поле"
 			}
 		}
 	}

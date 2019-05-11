@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/alex-pro27/monitoring_price_api/handlers/api/v1"
+	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/middleware"
 	"github.com/gorilla/mux"
 )
@@ -11,6 +12,8 @@ func RegisterApiV1Routes(r *mux.Router) {
 	router.Use(middleware.DefaultDBMiddleware)
 	routerTokenAuth := router.NewRoute().Subrouter()
 	routerTokenAuth.Use(middleware.TokenAuthMiddleware)
+	routerBasicAuth := router.NewRoute().Subrouter()
+	routerBasicAuth.Use(middleware.BasicAuthMiddleware)
 	notAuthRoutes := []Route{
 		{
 			Path:    "/user/{barcode}",
@@ -50,6 +53,34 @@ func RegisterApiV1Routes(r *mux.Router) {
 			Methods: []string{"POST"},
 		},
 	}
+	apiBasicAuth := []Route{
+		{
+			Path:    "/get-monitoring-data",
+			Handler: v1.GetCompletedWares,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/media/{name}",
+			Handler: common.FileResponse,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/monitoring-types",
+			Handler: v1.GetPeriods,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/monitoring-shops",
+			Handler: v1.GetMonitoringShops,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/regions",
+			Handler: v1.GetRegions,
+			Methods: []string{"GET"},
+		},
+	}
 	RegisterRoutes(router, notAuthRoutes, nil)
 	RegisterRoutes(routerTokenAuth, apiRoutes, nil)
+	RegisterRoutes(routerBasicAuth, apiBasicAuth, nil)
 }

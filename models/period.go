@@ -1,10 +1,16 @@
 package models
 
 import (
+	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/now"
 	"github.com/lib/pq"
+	"github.com/pkg/errors"
+	"github.com/wesovilabs/koazee"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -33,10 +39,12 @@ type CurrentPeriods struct {
 
 type Period struct {
 	gorm.Model
-	Period       PeriodsType `form:"choice:GetPeriodChoices"`
-	Start        int
-	End          int
-	SelectedDays pq.Int64Array `gorm:"type:integer[]"`
+	Name         string        `gorm:"type:varchar(255)" form:"label:Название"`
+	Period       PeriodsType   `form:"choice:GetPeriodChoices;label:Период"`
+	Start        int           `form:"label:Начало периода"`
+	End          int           `form:"label:Конец периода"`
+	SelectedDays pq.Int64Array `gorm:"type:integer[]" form:"label:Дни"`
+	Active       bool          `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (Period) GetPeriodChoices() map[PeriodsType]string {
@@ -47,8 +55,34 @@ func (period Period) GetPeriodName() string {
 	return PeriodChoices[period.Period]
 }
 
+func (period *Period) SetSelectedDays(days string) (err error) {
+	_days := make(pq.Int64Array, 0)
+	if days != "" {
+		if match, _ := regexp.MatchString("^[1-7],\\s?([1-7],\\s?){0,5}[1-7]?$", days); !match {
+			return errors.New("Введите дни от 1 до 7 через запятую")
+		}
+		for _, day := range strings.Split(days, ",") {
+			_day, _ := strconv.ParseInt(day, 10, 64)
+			if _day != 0 {
+				_days = append(_days, _day)
+			}
+		}
+		_days = koazee.StreamOf(_days).RemoveDuplicates().Out().Val().([]int64)
+	}
+	period.SelectedDays = _days
+	return nil
+}
+
 func (period *Period) CRUD(db *gorm.DB) types.CRUDManager {
 	return period.Manager(db)
+}
+
+func (period Period) GetCurrentPeriod() string {
+	var dates []string
+	for _, date := range period.GetPeriodDates().Dates {
+		dates = append(dates, date.Format(helpers.ISO8601))
+	}
+	return strings.Join(dates, ",")
 }
 
 func (period *Period) Manager(db *gorm.DB) *PeriodManager {
@@ -62,13 +96,41 @@ func (Period) Meta() types.ModelsMeta {
 	}
 }
 
+func (period *Period) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		SortFields: []types.AdminMetaField{
+			{
+				Name: "Name",
+			},
+		},
+		ExtraFields: []types.AdminMetaField{
+			{
+				Name:  "GetPeriodName",
+				Label: "Период",
+			},
+			{
+				Name:   "GetCurrentPeriod",
+				Label:  "Даты",
+				ToHTML: "date",
+			},
+		},
+	}
+}
+
 func (period Period) String() string {
-	return period.GetPeriodName()
+	if period.Name == "" {
+		return period.GetPeriodName()
+	} else {
+		return period.Name
+	}
 }
 
 func (period Period) GetPeriodDates() (currentPeriods CurrentPeriods) {
 	year, month, day := time.Now().Date()
 	date := time.Date(year, month, day, 0, 0, 0, 0, time.Local)
+	for date.Weekday() != time.Monday {
+		date = date.AddDate(0, 0, -1)
+	}
 	dayDuration := time.Hour * 24
 	switch period.Period {
 	case PERIOD_DAY:
@@ -76,15 +138,12 @@ func (period Period) GetPeriodDates() (currentPeriods CurrentPeriods) {
 		for _, _day := range period.SelectedDays {
 			currentPeriods.Dates = append(
 				currentPeriods.Dates,
-				time.Date(year, month, int(_day), 0, 0, 0, 0, time.Local),
+				date.AddDate(0, 0, int(_day-1)),
 			)
 		}
 		break
 	case PERIOD_WEEK:
 		currentPeriods.Type = PERIOD_WEEK
-		for date.Weekday() != time.Monday {
-			date = date.AddDate(0, 0, -1)
-		}
 		end := period.End
 		if end <= period.Start {
 			end += 7
@@ -103,8 +162,8 @@ func (period Period) GetPeriodDates() (currentPeriods CurrentPeriods) {
 		tempDateEnd := beginningMonth.Add(dayDuration*time.Duration(period.End) - 1)
 		if day > period.End {
 			// Если текущий день больше дня окончания мониторинга то выбираем следующий месяц
-			start = prevMonth.Add(dayDuration * time.Duration(period.Start))
-			end = start.Add(dayDuration * time.Duration(period.End))
+			start = beginningMonth.Add(dayDuration * time.Duration(period.Start-1))
+			end = now.EndOfMonth().Add(dayDuration * time.Duration(period.End))
 		} else if tempDateEnd.Sub(prevMonth).Hours()/24 <= float64(now.EndOfMonth().Day()) {
 			// Если разница в кол. пройденых дней не превышает или равно кол. дней в пред. месяце
 			// то выбираем предыдущий месяц
@@ -117,16 +176,21 @@ func (period Period) GetPeriodDates() (currentPeriods CurrentPeriods) {
 		}
 		currentPeriods.Dates = []time.Time{start, end}
 		break
-	case PERIOD_QUARTER, PERIOD_YEAR:
+	case PERIOD_QUARTER:
+		currentPeriods.Type = PERIOD_QUARTER
+		startQuarter := now.BeginningOfQuarter()
+		currentPeriods.Dates = []time.Time{
+			startQuarter.Add(dayDuration * time.Duration(period.Start-1)),
+			startQuarter.Add(dayDuration * time.Duration(period.End-1)),
+		}
+	case PERIOD_YEAR:
 		if period.Period == PERIOD_YEAR {
 			currentPeriods.Type = PERIOD_YEAR
-		} else {
-			currentPeriods.Type = PERIOD_QUARTER
 		}
 		startYear := now.BeginningOfYear()
 		currentPeriods.Dates = []time.Time{
-			startYear.Add(dayDuration * time.Duration(period.Start)),
-			startYear.Add(dayDuration * time.Duration(period.End)),
+			startYear.Add(dayDuration * time.Duration(period.Start-1)),
+			startYear.Add(dayDuration * time.Duration(period.End-1)),
 		}
 		break
 	}

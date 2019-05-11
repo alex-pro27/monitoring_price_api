@@ -40,7 +40,7 @@ func (manager *PeriodManager) Delete() (err error) {
 func (manager *PeriodManager) GetAvailablePeriods() []Period {
 	var all, periods []Period
 	currentDate := time.Now()
-	manager.Find(&all)
+	manager.Find(&all, "active = true")
 	for _, period := range all {
 		periodDates := period.GetPeriodDates()
 		if periodDates.Type == PERIOD_DAY {

@@ -20,16 +20,17 @@ type ModelsMeta struct {
 }
 
 type AdminMetaField struct {
-	Name  string
-	Label string
-	Type  string
+	Name   string
+	Label  string
+	ToHTML string // date, datetime, image
 }
 
 type AdminMeta struct {
+	ShortToHtml   string // date, datetime, image
 	ExcludeFields []string
 	Fields        []string
 	Preload       []string
-	SortFields    []string
+	SortFields    []AdminMetaField
 	OrderBy       []string
 	SearchFields  []string
 	ExtraFields   []AdminMetaField

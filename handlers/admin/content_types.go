@@ -259,7 +259,14 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 						}
 						break
 					case pq.Int64Array:
-						field.Name = "array"
+						field.Type = "array"
+						if field.Value != nil {
+							list := make([]string, 0)
+							for _, item := range field.Value.(pq.Int64Array) {
+								list = append(list, strconv.FormatInt(item, 10))
+							}
+							field.Value = strings.Join(list, ",")
+						}
 						break
 					}
 				}
@@ -483,8 +490,8 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 				}
 			} else {
 				for _, ord := range strings.Split(orderBy, ",") {
-					for _, fieldName := range adminMeta.SortFields {
-						if strings.Index(ord, helpers.ToSnakeCase(fieldName)) > -1 {
+					for _, fieldInfo := range adminMeta.SortFields {
+						if strings.Index(ord, helpers.ToSnakeCase(fieldInfo.Name)) > -1 {
 							ord = helpers.GetSortField(ord)
 							qs = qs.Order(ord)
 						}
@@ -525,9 +532,14 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 			} else {
 				item := make(types.H)
 				item["id"] = iobj.FieldByName("Model").FieldByName("ID").Interface()
-				for _, fieldName := range adminMeta.SortFields {
-					name := helpers.ToSnakeCase(fieldName)
-					item[name] = iobj.FieldByName(fieldName).Interface()
+				for _, fieldInfo := range adminMeta.SortFields {
+					name := helpers.ToSnakeCase(fieldInfo.Name)
+					val := iobj.FieldByName(fieldInfo.Name)
+					if val.IsValid() {
+						item[name] = iobj.FieldByName(fieldInfo.Name).Interface()
+					} else {
+						item[name] = nil
+					}
 				}
 				for _, extraField := range adminMeta.ExtraFields {
 					name, value := helpers.GetValue(iobj, extraField.Name)
@@ -538,6 +550,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 		}
 
 		meta["short"] = isShort
+		meta["toHTML"] = adminMeta.ShortToHtml
 		meta["available_search"] = len(adminMeta.SearchFields) > 0
 		data := types.H{
 			"meta":     meta,
@@ -547,17 +560,20 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 
 		if !isShort {
 			var sortFields, extraFields []types.H
-			for _, fieldName := range adminMeta.SortFields {
-				structField, _ := obj.Elem().Type().FieldByName(fieldName)
+			for _, fieldInfo := range adminMeta.SortFields {
+				structField, _ := obj.Elem().Type().FieldByName(fieldInfo.Name)
 				form := helpers.ParseTag(structField.Tag.Get("form"))
-				name := helpers.ToSnakeCase(fieldName)
+				name := helpers.ToSnakeCase(fieldInfo.Name)
 				label := name
-				if form["label"] != "" {
+				if fieldInfo.Label == "" && form["label"] != "" {
 					label = form["label"]
+				} else if fieldInfo.Label != "" {
+					label = fieldInfo.Label
 				}
 				sortFields = append(sortFields, types.H{
-					"name":  name,
-					"label": label,
+					"name":   name,
+					"label":  label,
+					"toHTML": fieldInfo.ToHTML,
 				})
 			}
 			for _, extraField := range adminMeta.ExtraFields {
@@ -577,7 +593,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 				} else {
 					_extraField["name"] = helpers.ToSnakeCase(extraField.Name)
 				}
-				_extraField["type"] = extraField.Type
+				_extraField["toHTML"] = extraField.ToHTML
 				extraFields = append(extraFields, _extraField)
 			}
 			data["sort_fields"] = sortFields

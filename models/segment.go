@@ -10,10 +10,10 @@ import (
 */
 type Segment struct {
 	gorm.Model
-	Name   string `gorm:"size:255"`
-	Code   string `gorm:"size:255"`
-	Wares  []Ware `gorm:"foreignkey:SegmentId"`
-	Active bool   `gorm:"default:true"`
+	Name   string `gorm:"size:255" form:"label:Имя"`
+	Code   string `gorm:"size:255" form:"label:Код"`
+	Wares  []Ware `gorm:"foreignkey:SegmentId" form:"label:Товары"`
+	Active bool   `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (segment Segment) Serializer() types.H {
@@ -32,8 +32,11 @@ func (segment Segment) Serializer() types.H {
 
 func (Segment) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		OrderBy:      []string{"Name"},
-		SortFields:   []string{"Name", "Code"},
+		OrderBy: []string{"Name"},
+		SortFields: []types.AdminMetaField{
+			{Name: "Code"},
+			{Name: "Name"},
+		},
 		SearchFields: []string{"Name", "Code"},
 	}
 }

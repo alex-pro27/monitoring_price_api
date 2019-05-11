@@ -24,15 +24,19 @@ func CheckPermission(
 	} else {
 		db := context.Get(r, "DB").(*gorm.DB)
 		tableName := db.NewScope(model).GetModelStruct().TableName(db)
-		permission := models.Permission{}
+		permissions := []models.Permission{}
 		db.Joins(
 			"INNER JOIN views v ON v.id = view_id",
 		).Joins(
 			"INNER JOIN content_types ct ON ct.id = v.content_type_id",
-		).Find(&permission, "ct.table = ?", tableName)
-		if permission.Access >= accessCode {
-			access = true
+		).Find(&permissions, "ct.table = ?", tableName)
+		for _, permission := range permissions {
+			if permission.Access >= accessCode {
+				access = true
+				break
+			}
 		}
+
 	}
 	if !access {
 		common.Forbidden(w, r)

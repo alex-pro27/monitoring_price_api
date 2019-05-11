@@ -11,12 +11,12 @@ type Ware struct {
 	gorm.Model
 	Name           string  `gorm:"size:255" form:"label:Название товара;required"`
 	Code           string  `gorm:"size:255" form:"label: Локальный код товара;required"`
-	Barcode        string  `gorm:"size:255" form:"label: ШК товара;required"`
+	Barcode        string  `gorm:"size:255" form:"label: ШК товара;"`
 	Description    string  `form:"label:Описание"`
 	Segment        Segment `form:"label:Сегмент"`
 	SegmentId      uint
 	Active         bool             `gorm:"default:true" form:"label:Активный;type:switch"`
-	MonitoringType []MonitoringType `gorm:"many2many:wares_monitoring_types"`
+	MonitoringType []MonitoringType `gorm:"many2many:wares_monitoring_types" form:"label:Тип мониторинга"`
 }
 
 func (ware Ware) GetMonitoringType() string {
@@ -50,7 +50,11 @@ func (Ware) Admin() types.AdminMeta {
 		SearchFields:  []string{"Name", "Barcode"},
 		Preload:       []string{"Segment", "MonitoringType"},
 		OrderBy:       []string{"SegmentId", "Name"},
-		SortFields:    []string{"Name", "Barcode", "Active"},
+		SortFields: []types.AdminMetaField{
+			{Name: "Name"},
+			{Name: "Barcode"},
+			{Name: "Active"},
+		},
 		ExtraFields: []types.AdminMetaField{
 			{
 				Name:  "Segment.Name",

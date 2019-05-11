@@ -62,7 +62,7 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 		"INNER JOIN regions r ON r.id = wgr.regions_id",
 	).Find(
 		&rivals,
-		"wg.name::text ~* ? AND r.name::text ~* ? AND p.id IN (?)",
+		"monitoring_shops.active = true AND wg.name::text ~* ? AND r.name::text ~* ? AND p.id IN (?)",
 		vars["shop"],
 		regions,
 		periodsIDX,
@@ -73,8 +73,10 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 	for _, rival := range rivals {
 		var segments []types.H
 		for _, segment := range rival.Segments {
+			if len(segment.Wares) == 0 {
+				continue
+			}
 			var waresIDX []uint
-
 			for _, ware := range segment.Wares {
 				waresIDX = append(waresIDX, ware.ID)
 			}

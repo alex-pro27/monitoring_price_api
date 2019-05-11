@@ -39,7 +39,11 @@ func (WorkGroup) Meta() types.ModelsMeta {
 func (WorkGroup) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		SearchFields: []string{"Name"},
-		SortFields:   []string{"Name", "Active"},
+		SortFields: []types.AdminMetaField{
+			{Name: "Name"},
+			{Name: "Address"},
+			{Name: "Active"},
+		},
 	}
 }
 

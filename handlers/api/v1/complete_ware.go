@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/config"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/helpers"
@@ -10,10 +11,14 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
+	"github.com/wesovilabs/koazee"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -26,7 +31,7 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 	user := context.Get(r, "user").(*models.User)
 	_wares := data["wares"]
 	if _wares == nil {
-		common.ErrorResponse(w, r, "Нечего выгружать")
+		common.ErrorResponse(w, r, "Нет данных для выгрузки")
 		return
 	}
 	wares := _wares.([]interface{})
@@ -119,5 +124,120 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		"error":     false,
 		"url_photo": filePath,
 	})
+}
 
+func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
+	from, _ := time.Parse("2006-01-02", r.FormValue("from"))
+	to, _ := time.Parse("2006-01-02", r.FormValue("to"))
+	if from.IsZero() {
+		from = time.Now()
+	}
+	if to.IsZero() {
+		to = from
+	}
+	names := []string{"regions", "shops", "monitoring_types"}
+	params := make(map[string][]int)
+	for _, name := range names {
+		params[name] = koazee.StreamOf(
+			strings.Split(r.FormValue(name), ","),
+		).Map(func(x string) int {
+			n, _ := strconv.Atoi(x)
+			return n
+		}).Filter(func(x int) bool {
+			return x > 0
+		}).RemoveDuplicates().Out().Val().([]int)
+	}
+	limit := 250
+	page, _ := strconv.Atoi(r.FormValue("page"))
+	start := page*limit - limit
+	db := context.Get(r, "DB").(*gorm.DB)
+	qs := db.Model(
+		&models.CompletedWare{},
+	).Select(
+		"DISTINCT "+
+			"completed_wares.*,"+
+			"CONCAT(u.user_name, ' ', u.last_name, ' ', u.first_name) as user,"+
+			"s.name as segment,"+
+			"w.name as ware, w.code as code,"+
+			"ms.name as rival,"+
+			"mt.name as monitoring_type,"+
+			"r.name as region",
+	).Joins(
+		"LEFT JOIN regions r ON r.id = completed_wares.region_id",
+	).Joins(
+		"LEFT JOIN monitoring_shops ms ON ms.id = completed_wares.monitoring_shop_id",
+	).Joins(
+		"LEFT JOIN users u ON u.id = completed_wares.user_id",
+	).Joins(
+		"LEFT JOIN wares w ON w.id = completed_wares.ware_id",
+	).Joins(
+		"LEFT JOIN segments s ON s.id = w.segment_id",
+	).Joins(
+		"LEFT JOIN monitoring_types mt ON mt.id = completed_wares.monitoring_type_id",
+	).Where(
+		"completed_wares.date_upload BETWEEN date(?) AND (date(?) + '1 day'::interval)", from, to,
+	)
+	if len(params["regions"]) > 0 {
+		qs = qs.Where("r.id IN (?)", params["regions"])
+	}
+	if len(params["shops"]) > 0 {
+		qs = qs.Where("ms.id IN (?)", params["shops"])
+	}
+	if len(params["monitoring_types"]) > 0 {
+		qs = qs.Where("mt.id IN (?)", params["monitoring_types"])
+	}
+	type CompleteWare struct {
+		ID             uint      `json:"-"`
+		User           string    `json:"user"`
+		DateUpload     time.Time `json:"date_upload"`
+		Segment        string    `json:"segment"`
+		Ware           string    `json:"ware"`
+		Code           string    `json:"code"`
+		Price          float64   `json:"price"`
+		MaxPrice       float64   `json:"max_price"`
+		MinPrice       float64   `json:"min_price"`
+		Comment        string    `json:"comment"`
+		Rival          string    `json:"rival"`
+		Photos         []string  `json:"photos"`
+		Region         string    `json:"region"`
+		MonitoringType string    `json:"monitoring_type"`
+	}
+	completeWares := make([]*CompleteWare, 0)
+
+	count := 0
+	qs.Count(&count)
+	qs.Offset(start).Limit(limit).Order("date_upload DESC").Scan(&completeWares)
+	photos := make([]models.Photos, 0)
+
+	if len(completeWares) > 0 {
+		idx := koazee.StreamOf(completeWares).Map(func(x *CompleteWare) uint { return x.ID }).Out().Val()
+		db.Find(&photos, "completed_ware_id IN (?)", idx)
+	}
+
+	var length int
+	if length = limit; limit != len(completeWares) {
+		length = len(completeWares)
+	}
+	for _, ware := range completeWares {
+		for _, photo := range photos {
+			if photo.CompletedWareId == ware.ID {
+				ware.Photos = append(
+					ware.Photos,
+					fmt.Sprintf("%s/api/monitoring/media/%s", config.Config.System.ServerUrl, photo.Path),
+				)
+			}
+		}
+	}
+
+	data := types.H{
+		"paginate": common.PaginateInfo{
+			CurrentPage: page,
+			Count:       count,
+			Length:      length,
+			CountPage:   int(math.Ceil(float64(count) / float64(limit))),
+		},
+		"result": completeWares,
+	}
+
+	common.JSONResponse(w, data)
 }
