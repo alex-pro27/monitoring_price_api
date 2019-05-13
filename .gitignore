@@ -3,3 +3,5 @@
 config/config.yml
 config/test_config.yml
 vendor
+nohup.out
+monitoring_price_api
