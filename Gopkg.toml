@@ -80,3 +80,8 @@
 [[constraint]]
   branch = "master"
   name = "github.com/nfnt/resize"
+
+[[constraint]]
+  name = "github.com/wesovilabs/koazee"
+  version = "0.0.4"
+
