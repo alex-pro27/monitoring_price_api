@@ -15,6 +15,6 @@ func GetRegions(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	regions := make([]*Region, 0)
-	db.Model(&models.Regions{}).Scan(&regions)
+	db.Model(&models.MonitoringGroups{}).Scan(&regions)
 	common.JSONResponse(w, regions)
 }

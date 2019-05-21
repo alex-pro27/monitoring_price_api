@@ -33,8 +33,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	var region, shopName, roleName string
 	if len(user.WorkGroup) > 0 {
 		shopName = user.WorkGroup[0].Name
-		if len(user.WorkGroup[0].Regions) > 0 {
-			region = user.WorkGroup[0].Regions[0].Name
+		if len(user.WorkGroup[0].MonitoringGroups) > 0 {
+			region = user.WorkGroup[0].MonitoringGroups[0].Name
 		}
 	}
 	if len(user.Roles) > 0 {

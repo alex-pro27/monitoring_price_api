@@ -64,9 +64,9 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 		completeWare.MonitoringType = monitoringType
 		tx.Preload("Segment").First(&completeWare.Ware, "id = ?", wareData["id"])
 		tx.First(&completeWare.MonitoringShop, "id = ?", wareData["rival_id"])
-		region := models.Regions{}
-		if len(user.WorkGroup) > 0 && len(user.WorkGroup[0].Regions) > 0 {
-			region = user.WorkGroup[0].Regions[0]
+		region := models.MonitoringGroups{}
+		if len(user.WorkGroup) > 0 && len(user.WorkGroup[0].MonitoringGroups) > 0 {
+			region = user.WorkGroup[0].MonitoringGroups[0]
 		}
 		completeWare.DateUpload = time.Now()
 		completeWare.User = *user
@@ -80,7 +80,7 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 			tx.FirstOrCreate(&photo, photo)
 			completeWare.Photos = append(completeWare.Photos, photo)
 		}
-		completeWare.Region = region
+		completeWare.MonitoringGroup = region
 		tx.Save(&completeWare)
 	}
 	if res := tx.Commit(); res.Error != nil {
@@ -161,9 +161,9 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 			"w.name as ware, w.code as code,"+
 			"ms.name as rival,"+
 			"mt.name as monitoring_type,"+
-			"r.name as region",
+			"monitoring_groups.name as region",
 	).Joins(
-		"LEFT JOIN regions r ON r.id = completed_wares.region_id",
+		"LEFT JOIN monitoring_groups mg ON mg.id = completed_wares.region_id",
 	).Joins(
 		"LEFT JOIN monitoring_shops ms ON ms.id = completed_wares.monitoring_shop_id",
 	).Joins(
@@ -178,7 +178,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		"completed_wares.date_upload BETWEEN date(?) AND (date(?) + '1 day'::interval)", from, to,
 	)
 	if len(params["regions"]) > 0 {
-		qs = qs.Where("r.id IN (?)", params["regions"])
+		qs = qs.Where("mg.id IN (?)", params["regions"])
 	}
 	if len(params["shops"]) > 0 {
 		qs = qs.Where("ms.id IN (?)", params["shops"])

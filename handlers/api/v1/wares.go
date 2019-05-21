@@ -61,11 +61,11 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 	).Joins(
 		"INNER JOIN periods p ON p.id = mtp.period_id",
 	).Joins(
-		"INNER JOIN work_groups_regions wgr ON wg.id = wgr.work_group_id",
+		"INNER JOIN work_groups_monitoring_groups wgmg ON wg.id = wgmg.work_group_id",
 	).Joins(
-		"INNER JOIN regions r ON r.id = wgr.regions_id",
+		"INNER JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
 	).Where(
-		"wares.active = true AND wg.name::text ~* ? AND r.name::text ~* ? AND p.id IN (?)",
+		"wares.active = true AND wg.name::text ~* ? AND mg.name::text ~* ? AND p.id IN (?)",
 		vars["shop"],
 		regions,
 		periodsIDX,

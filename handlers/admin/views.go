@@ -10,6 +10,7 @@ import (
 	"github.com/wesovilabs/koazee"
 	"net/http"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -30,6 +31,7 @@ type View struct {
 	Permission    Permission      `json:"permission"`
 	ViewType      models.ViewType `json:"view_type"`
 	Menu          bool            `json:"menu"`
+	Position      uint            `json:"-"`
 }
 
 func (view *View) AddChild(child *View) {
@@ -70,6 +72,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 				ParentID:      item.ParentId,
 				Permission:    assesPermission,
 				ViewType:      item.ViewType,
+				Position:      item.PositionMenu,
 			}
 			for _, _item := range views {
 				child := stream.Filter(func(v models.Views) bool { return v.ID == _item.ID }).Out().Val()
@@ -84,6 +87,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 						ParentID:      _item.ParentId,
 						Permission:    assesPermission,
 						ViewType:      _item.ViewType,
+						Position:      _item.PositionMenu,
 					}
 					view.AddChild(_view)
 				}
@@ -137,7 +141,8 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 					Icon:          permission.View.Icon,
 					ParentID:      permission.View.ParentId,
 					ViewType:      permission.View.ViewType,
-					Menu:          permission.View.Menu,
+					Menu:          permission.View.PositionMenu > 0,
+					Position:      permission.View.PositionMenu,
 					Permission: Permission{
 						Name:   permission.GetPermissionName(),
 						Access: permission.Access,
@@ -154,7 +159,8 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 							Icon:          _permission.View.Icon,
 							ParentID:      _permission.View.ParentId,
 							ViewType:      _permission.View.ViewType,
-							Menu:          _permission.View.Menu,
+							Menu:          _permission.View.PositionMenu > 0,
+							Position:      _permission.View.PositionMenu,
 							Permission: Permission{
 								Name:   _permission.GetPermissionName(),
 								Access: _permission.Access,
@@ -170,6 +176,9 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if user.IsSuperUser || len(data) > 0 {
+		sort.Slice(data, func(i, j int) bool {
+			return data[i].Position < data[j].Position
+		})
 		common.JSONResponse(w, data)
 	} else {
 		common.Forbidden(w, r)

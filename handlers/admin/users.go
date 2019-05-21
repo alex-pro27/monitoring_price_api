@@ -36,9 +36,9 @@ func AllUsers(w http.ResponseWriter, r *http.Request) {
 		qs = qs.Joins(
 			"INNER JOIN users_work_groups uw ON users.id = uw.user_id",
 		).Joins(
-			"INNER JOIN work_groups_regions wr ON uw.work_group_id = wr.work_group_id",
+			"INNER JOIN work_groups_monitoring_groups wgmg ON uw.work_group_id = wgmg.work_group_id",
 		).Where(
-			"wr.regions_id = ?", regionID,
+			"wgmg.monitoring_groups_id = ?", regionID,
 		)
 		if workGroupsID != 0 {
 			qs = qs.Where("uw.work_group_id = ?", workGroupsID)

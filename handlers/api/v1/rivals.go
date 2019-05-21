@@ -57,12 +57,12 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 	).Joins(
 		"INNER JOIN work_groups wg ON wg.id = wgms.work_group_id",
 	).Joins(
-		"INNER JOIN work_groups_regions wgr ON wg.id = wgr.work_group_id",
+		"INNER JOIN work_groups_monitoring_groups wgmg ON wg.id = wgmg.work_group_id",
 	).Joins(
-		"INNER JOIN regions r ON r.id = wgr.regions_id",
+		"INNER JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
 	).Find(
 		&rivals,
-		"monitoring_shops.active = true AND wg.name::text ~* ? AND r.name::text ~* ? AND p.id IN (?)",
+		"monitoring_shops.active = true AND wg.name::text ~* ? AND mg.name::text ~* ? AND p.id IN (?)",
 		vars["shop"],
 		regions,
 		periodsIDX,
@@ -92,7 +92,7 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 			"id":            rival.ID,
 			"name":          rival.Name,
 			"address":       rival.Address,
-			"region":        rival.WorkGroup[0].Regions[0].Name,
+			"region":        rival.WorkGroup[0].MonitoringGroups[0].Name,
 			"segments":      segments,
 			"is_must_photo": rival.IsMustPhoto,
 		})

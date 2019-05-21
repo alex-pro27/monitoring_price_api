@@ -16,7 +16,7 @@ var DefaultModels = []interface{}{
 	models.Segment{},
 	models.Ware{},
 	models.WorkGroup{},
-	models.Regions{},
+	models.MonitoringGroups{},
 	models.MonitoringShop{},
 	models.Token{},
 	models.Period{},
@@ -88,8 +88,8 @@ func MigrateDefaultDB() {
 	db.Table("work_groups_monitoring_shops").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
 	db.Table("work_groups_monitoring_shops").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
 
-	db.Table("work_groups_regions").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
-	db.Table("work_groups_regions").AddForeignKey("regions_id", "regions(id)", "CASCADE", "CASCADE")
+	db.Table("work_groups_monitoring_groups").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
+	db.Table("work_groups_monitoring_groups").AddForeignKey("monitoring_groups_id", "monitoring_groups(id)", "CASCADE", "CASCADE")
 
 	db.Table("users_roles").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	db.Table("users_roles").AddForeignKey("role_id", "roles(id)", "CASCADE", "CASCADE")
