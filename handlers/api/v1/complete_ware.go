@@ -161,7 +161,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 			"w.name as ware, w.code as code,"+
 			"ms.name as rival,"+
 			"mt.name as monitoring_type,"+
-			"monitoring_groups.name as region",
+			"mg.name as region",
 	).Joins(
 		"LEFT JOIN monitoring_groups mg ON mg.id = completed_wares.region_id",
 	).Joins(

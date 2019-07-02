@@ -35,6 +35,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		shopName = user.WorkGroup[0].Name
 		if len(user.WorkGroup[0].MonitoringGroups) > 0 {
 			region = user.WorkGroup[0].MonitoringGroups[0].Name
+		} else {
+			region = "None"
 		}
 	}
 	if len(user.Roles) > 0 {

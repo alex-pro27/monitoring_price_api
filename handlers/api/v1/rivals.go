@@ -35,7 +35,7 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 	db.Preload(
 		"Segments.Wares",
 	).Preload(
-		"WorkGroup.Regions",
+		"WorkGroup.MonitoringGroups",
 	).Select(
 		"DISTINCT monitoring_shops.*",
 	).Joins(
@@ -45,21 +45,21 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 	).Joins(
 		"INNER JOIN wares w ON w.segment_id = s.id",
 	).Joins(
-		"INNER JOIN wares_monitoring_types wmt ON wmt.ware_id = w.id",
+		"LEFT JOIN wares_monitoring_types wmt ON wmt.ware_id = w.id",
 	).Joins(
-		"INNER JOIN monitoring_types mt ON mt.id = wmt.monitoring_type_id",
+		"LEFT JOIN monitoring_types mt ON mt.id = wmt.monitoring_type_id",
 	).Joins(
-		"INNER JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
+		"LEFT JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
 	).Joins(
-		"INNER JOIN periods p ON p.id = mtp.period_id",
+		"LEFT JOIN periods p ON p.id = mtp.period_id",
 	).Joins(
-		"INNER JOIN work_groups_monitoring_shops wgms ON monitoring_shops.id = wgms.monitoring_shop_id",
+		"LEFT JOIN work_groups_monitoring_shops wgms ON monitoring_shops.id = wgms.monitoring_shop_id",
 	).Joins(
-		"INNER JOIN work_groups wg ON wg.id = wgms.work_group_id",
+		"LEFT JOIN work_groups wg ON wg.id = wgms.work_group_id",
 	).Joins(
-		"INNER JOIN work_groups_monitoring_groups wgmg ON wg.id = wgmg.work_group_id",
+		"LEFT JOIN work_groups_monitoring_groups wgmg ON wg.id = wgmg.work_group_id",
 	).Joins(
-		"INNER JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
+		"LEFT JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
 	).Find(
 		&rivals,
 		"monitoring_shops.active = true AND wg.name::text ~* ? AND mg.name::text ~* ? AND p.id IN (?)",

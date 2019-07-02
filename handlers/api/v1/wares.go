@@ -28,12 +28,14 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type Ware struct {
-		ID             uint   `json:"id"`
-		Code           string `json:"code"`
-		Name           string `json:"name"`
-		Description    string `json:"description"`
-		Barcode        string `json:"barcode"`
-		TypeMonitoring uint   `json:"type_monitoring"`
+		ID             	uint   	`json:"id"`
+		Code           	string 	`json:"code"`
+		Name           	string 	`json:"name"`
+		Description    	string 	`json:"description"`
+		Barcode        	string 	`json:"barcode"`
+		TypeMonitoring 	uint   	`json:"type_monitoring"`
+		Mg2				uint 	`json:"-"`		// Фильтр по группам мониторинга
+		Wg2				uint 	`json:"-"`		// Фильтр по рабочим группам
 	}
 
 	var data []Ware
@@ -41,36 +43,66 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 	db.Model(
 		&models.Ware{},
 	).Select(
-		"DISTINCT wares.id, wares.code, wares.name, wares.barcode, wares.description, mt.id type_monitoring",
+		"DISTINCT " +
+			"wares.id, " +
+			"wares.code, " +
+			"wares.name, " +
+			"wares.barcode, " +
+			"wares.description, " +
+			"mt.id type_monitoring, " +
+			"mg2.id mg2, " +
+			"wg2.id wg2",
 	).Joins(
 		"INNER JOIN segments s ON s.id = wares.segment_id",
 	).Joins(
-		"INNER JOIN wares_monitoring_types wmt ON wmt.ware_id = wares.id",
+		"LEFT JOIN wares_monitoring_types wmt ON wmt.ware_id = wares.id",
 	).Joins(
-		"INNER JOIN monitoring_types mt ON wmt.monitoring_type_id = mt.id",
+		"LEFT JOIN monitoring_types mt ON wmt.monitoring_type_id = mt.id",
 	).Joins(
-		"INNER JOIN monitoring_shops_segments mss ON mss.segment_id = s.id",
+		"LEFT JOIN monitoring_shops_segments mss ON mss.segment_id = s.id",
 	).Joins(
-		"INNER JOIN monitoring_shops ms ON ms.id = mss.monitoring_shop_id",
+		"LEFT JOIN monitoring_shops ms ON ms.id = mss.monitoring_shop_id",
 	).Joins(
-		"INNER JOIN work_groups_monitoring_shops wgms ON wgms.monitoring_shop_id = ms.id",
+		"LEFT JOIN work_groups_monitoring_shops wgms ON wgms.monitoring_shop_id = ms.id",
 	).Joins(
-		"INNER JOIN work_groups wg ON wg.id = wgms.work_group_id",
+		"LEFT JOIN work_groups wg ON wg.id = wgms.work_group_id",
 	).Joins(
-		"INNER JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
+		"LEFT JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
 	).Joins(
-		"INNER JOIN periods p ON p.id = mtp.period_id",
+		"LEFT JOIN periods p ON p.id = mtp.period_id",
 	).Joins(
-		"INNER JOIN work_groups_monitoring_groups wgmg ON wg.id = wgmg.work_group_id",
+		"LEFT JOIN work_groups_monitoring_groups wgmg ON wg.id = wgmg.work_group_id",
 	).Joins(
-		"INNER JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
+		"LEFT JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
+	).Joins(
+		"LEFT JOIN wares_monitoring_groups wmg ON wares.id = wmg.ware_id",
+	).Joins(
+		"LEFT JOIN monitoring_groups mg2 ON mg2.id = wmg.monitoring_groups_id",
+	).Joins(
+		"LEFT JOIN wares_work_groups wwg ON wares.id = wwg.ware_id",
+	).Joins(
+		"LEFT JOIN work_groups wg2 ON wg2.id = wwg.work_group_id",
 	).Where(
-		"wares.active = true AND wg.name::text ~* ? AND mg.name::text ~* ? AND p.id IN (?)",
+		"wares.active = true " +
+			"AND ((wg.name::text ~* ? AND mg.name::text ~* ? AND p.id IN (?)) " +
+			"OR mg2.name::text ~* ? OR wg2.name::text ~* ?)",
 		vars["shop"],
 		regions,
 		periodsIDX,
+		regions,
+		vars["shop"],
 	).Scan(&data)
 
+	data1 := make([]Ware, 0)
+	for _, it := range data {
+		if it.Wg2 > 0 {
+			data1 = append(data1, it)
+		} else if it.Mg2 > 0 {
+			data1 = append(data1, it)
+		}
+	}
+	if len(data1) > 0 {
+		data = data1
+	}
 	common.JSONResponse(w, data)
-
 }

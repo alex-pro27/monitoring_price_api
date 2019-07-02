@@ -9,14 +9,16 @@ import (
 
 type Ware struct {
 	gorm.Model
-	Name           string  `gorm:"size:255" form:"label:Название товара;required"`
-	Code           string  `gorm:"size:255" form:"label: Локальный код товара;required"`
-	Barcode        string  `gorm:"size:255" form:"label: ШК товара;"`
-	Description    string  `form:"label:Описание"`
-	Segment        Segment `form:"label:Сегмент"`
-	SegmentId      uint
-	Active         bool             `gorm:"default:true" form:"label:Активный;type:switch"`
-	MonitoringType []MonitoringType `gorm:"many2many:wares_monitoring_types" form:"label:Тип мониторинга"`
+	Name           		string  				`gorm:"size:255" form:"label:Название товара;required"`
+	Code           		string  				`gorm:"size:255" form:"label: Локальный код товара;required"`
+	Barcode        		string  				`gorm:"size:255" form:"label: ШК товара;"`
+	Description    		string  				`form:"label:Описание"`
+	Segment        		Segment 				`form:"label:Сегмент"`
+	SegmentId      		uint
+	Active         		bool             		`gorm:"default:true" form:"label:Активный;type:switch"`
+	MonitoringType 		[]MonitoringType 		`gorm:"many2many:wares_monitoring_types" form:"label:Тип мониторинга"`
+	MonitoringGroups 	[]MonitoringGroups 		`gorm:"many2many:wares_monitoring_groups" form:"label:Группы мониторинга"`
+	WorkGroups 			[]WorkGroup 			`gorm:"many2many:wares_work_groups" form:"label:Рабочая группа"`
 }
 
 func (ware Ware) GetMonitoringType() string {
