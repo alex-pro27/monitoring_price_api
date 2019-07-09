@@ -58,7 +58,7 @@ class Commands(object):
             db = self.__connect_default_db()
             cursor = db.cursor(cursor_factory=DictCursor)
             token = binascii.hexlify(os.urandom(16)).decode('ascii')
-            password = bcrypt.hashpw(password, bcrypt.gensalt(4))
+            password = bcrypt.hashpw(password, bcrypt.gensalt(4)).decode('ascii')
             cursor.execute(
                 """
                 INSERT INTO tokens 

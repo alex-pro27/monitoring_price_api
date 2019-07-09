@@ -80,3 +80,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/nfnt/resize"
+
+[[constraint]]
+  name = "github.com/tealeg/xlsx"
+  version = "1.0.3"

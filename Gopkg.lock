@@ -176,6 +176,14 @@
   version = "v0.8.1"
 
 [[projects]]
+  digest = "1:e60f2f1cd2e8dfdea48c2440c303d103266e754ab1d8b75796a4e4caddb7a68c"
+  name = "github.com/tealeg/xlsx"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8be35264fa75a1bbe954ce51eba04f273e2c59e5"
+  version = "v1.0.3"
+
+[[projects]]
   digest = "1:d6c0fc96bbce7b5775dccd2b4e6c351d440e6878e37ff524433ad7e0c13b3ddd"
   name = "github.com/wesovilabs/koazee"
   packages = [
@@ -447,6 +455,7 @@
     "github.com/lib/pq",
     "github.com/nfnt/resize",
     "github.com/pkg/errors",
+    "github.com/tealeg/xlsx",
     "github.com/wesovilabs/koazee",
     "golang.org/x/crypto/bcrypt",
     "google.golang.org/api/option",

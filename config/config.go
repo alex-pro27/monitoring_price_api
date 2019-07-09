@@ -55,6 +55,13 @@ type TypeConfig struct {
 	Firebase struct {
 		CertPath string `yaml:"CERT_PATH"`
 	}
+
+	SMS struct {
+		URL 		string 	`yaml:"URL"`
+		Login 		string	`yaml:"LOGIN"`
+		Password 	string	`yaml:"PASSWORD"`
+		Source 		string	`yaml:"SOURCE"`
+	}
 }
 
 var Config *TypeConfig
