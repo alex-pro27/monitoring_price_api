@@ -60,6 +60,8 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 		"LEFT JOIN monitoring_types mt ON wmt.monitoring_type_id = mt.id",
 	).Joins(
 		"LEFT JOIN monitoring_shops_segments mss ON mss.segment_id = s.id",
+
+		
 	).Joins(
 		"LEFT JOIN monitoring_shops ms ON ms.id = mss.monitoring_shop_id",
 	).Joins(

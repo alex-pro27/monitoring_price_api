@@ -12,7 +12,6 @@ type WorkGroup struct {
 	Address          string             `gorm:"size:255" form:"label:Адрес"`
 	MonitoringGroups []MonitoringGroups `gorm:"many2many:work_groups_monitoring_groups;" form:"label: Группы мониторинга"`
 	MonitoringShops  []MonitoringShop   `gorm:"many2many:work_groups_monitoring_shops;" form:"label:Магазины для мониторинга"`
-	Wares 			 []Ware				`gorm:"many2many:wares_work_groups" form:"label:Товары"`
 	Active           bool               `gorm:"default:true" form:"label:Активная;type:switch"`
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"github.com/wesovilabs/koazee"
 	"net/http"
 	"strings"
 )
@@ -33,17 +34,15 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db.Preload(
-		"Segments.Wares",
+		"Wares",
 	).Preload(
 		"WorkGroup.MonitoringGroups",
 	).Select(
 		"DISTINCT monitoring_shops.*",
 	).Joins(
-		"INNER JOIN monitoring_shops_segments mss ON mss.monitoring_shop_id = monitoring_shops.id",
+		"INNER JOIN monitoring_shops_wares msw ON msw.monitoring_shop_id = monitoring_shops.id",
 	).Joins(
-		"INNER JOIN segments s ON mss.segment_id = s.id",
-	).Joins(
-		"INNER JOIN wares w ON w.segment_id = s.id",
+		"INNER JOIN wares w ON w.id = msw.ware_id",
 	).Joins(
 		"LEFT JOIN wares_monitoring_types wmt ON wmt.ware_id = w.id",
 	).Joins(
@@ -69,16 +68,26 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 	)
 
 	var data []types.H
+	listInList := koazee.StreamOf(rivals).Map(func(ms models.MonitoringShop) []uint {
+		return koazee.StreamOf(ms.Wares).Map(func(w models.Ware) uint {return w.SegmentId}).Out().Val().([]uint)
+	}).Out().Val().([][]uint)
+	segmentsIDX := koazee.StreamOf(listInList).Reduce(func(s, x []uint) []uint {return append(s, x...)}).Val().([]uint)
+	segmentsIDX = koazee.StreamOf(segmentsIDX).RemoveDuplicates().Out().Val().([]uint)
+	var _segments []models.Segment
+	db.Find(&_segments, "id in (?)", segmentsIDX)
 
 	for _, rival := range rivals {
 		var segments []types.H
-		for _, segment := range rival.Segments {
-			if len(segment.Wares) == 0 {
-				continue
-			}
+		for _, segment := range _segments {
 			var waresIDX []uint
-			for _, ware := range segment.Wares {
-				waresIDX = append(waresIDX, ware.ID)
+			for _, ware := range rival.Wares {
+				if ware.SegmentId == segment.ID {
+					waresIDX = append(waresIDX, ware.ID)
+				}
+			}
+
+			if len(waresIDX) == 0 {
+				continue
 			}
 
 			segments = append(segments, types.H{

@@ -14,42 +14,39 @@ type MonitoringShop struct {
 	/**
 	Название
 	*/
-	Name string `gorm:"size:255" form:"label:Имя;required"`
+	Name string 			`gorm:"size:255" form:"label:Имя;required"`
 	/**
 	Адрес магазина
 	*/
-	Address string `gorm:"size:255" form:"label:Адрес"`
+	Address string 			`gorm:"size:255" form:"label:Адрес"`
 	/**
 	Код магазина(для 1с)
 	*/
-	Code string `gorm:"size:255" form:"label:Код"`
+	Code string 			`gorm:"size:255" form:"label:Код"`
 	/**
 	Обязательность фотографирования
 	*/
-	IsMustPhoto bool `form:"label:Обязательность фотографирования"`
+	IsMustPhoto bool 		`form:"label:Обязательность фотографирования"`
 	/**
 	Группа мониторинга
 	*/
-	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;" form:"label:Рабочая группа"`
+	WorkGroup []WorkGroup 	`gorm:"many2many:work_groups_monitoring_shops;" form:"label:Рабочая группа"`
 	/**
-	Сегменты
+	Товары
 	*/
-	Segments []Segment `gorm:"many2many:monitoring_shops_segments;" form:"label:Сегменты"`
-	Active   bool      `gorm:"default:true" form:"label:Активный;type:switch"`
+	Wares 	 []Ware 		`gorm:"many2many:monitoring_shops_wares;" form:"label: Товары"`
+
+	Active   bool      		`gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (monitoringShop MonitoringShop) Serializer() types.H {
-	var segmentIDX []uint
-	for _, segment := range monitoringShop.Segments {
-		segmentIDX = append(segmentIDX, segment.ID)
-	}
+
 	return types.H{
 		"id":            monitoringShop.ID,
 		"code":          monitoringShop.Code,
 		"name":          monitoringShop.Name,
 		"address":       monitoringShop.Address,
 		"is_must_photo": monitoringShop.IsMustPhoto,
-		"segments":      segmentIDX,
 	}
 }
 

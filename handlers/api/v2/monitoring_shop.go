@@ -35,7 +35,7 @@ func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
 	var responseData []types.H
 
 	for _, ms := range monitoringShops {
-		if len(ms.Segments) > 0 {
+		if len(ms.Wares) > 0 {
 			responseData = append(responseData, ms.Serializer())
 		}
 	}

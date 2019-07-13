@@ -76,8 +76,8 @@ func MigrateDefaultDB() {
 	db.Table("users_work_groups").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	db.Table("users_work_groups").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
 
-	db.Table("monitoring_shops_segments").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
-	db.Table("monitoring_shops_segments").AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
+	db.Table("monitoring_shops_wares").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
+	db.Table("monitoring_shops_wares").AddForeignKey("ware_id", "wares(id)", "CASCADE", "CASCADE")
 
 	db.Table("monitoring_types_periods").AddForeignKey("monitoring_type_id", "monitoring_types(id)", "CASCADE", "CASCADE")
 	db.Table("monitoring_types_periods").AddForeignKey("period_id", "periods(id)", "CASCADE", "CASCADE")
@@ -99,9 +99,6 @@ func MigrateDefaultDB() {
 
 	db.Table("wares_monitoring_groups").AddForeignKey("ware_id", "wares(id)", "CASCADE", "CASCADE")
 	db.Table("wares_monitoring_groups").AddForeignKey("monitoring_groups_id", "monitoring_groups(id)", "CASCADE", "CASCADE")
-
-	db.Table("wares_work_groups").AddForeignKey("ware_id", "wares(id)", "CASCADE", "CASCADE")
-	db.Table("wares_work_groups").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
 
 	for _, model := range DefaultModels {
 		tableName := db.NewScope(model).GetModelStruct().TableName(db)
