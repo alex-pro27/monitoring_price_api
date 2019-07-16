@@ -17,8 +17,7 @@ type Ware struct {
 	SegmentId      		uint
 	Active         		bool             		`gorm:"default:true" form:"label:Активный;type:switch"`
 	MonitoringType 		[]MonitoringType 		`gorm:"many2many:wares_monitoring_types" form:"label:Тип мониторинга"`
-	MonitoringGroups 	[]MonitoringGroups 		`gorm:"many2many:wares_monitoring_groups" form:"label:Группы мониторинга"`
-	WorkGroups 			[]WorkGroup 			`gorm:"many2many:wares_work_groups" form:"label:Рабочая группа"`
+	MonitoringShops 	[]MonitoringShop 		`gorm:"many2many:monitoring_shops_wares" form:"label:Магазины для мониторинга"`
 }
 
 func (ware Ware) GetMonitoringType() string {

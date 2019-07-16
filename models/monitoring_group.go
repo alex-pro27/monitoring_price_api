@@ -12,7 +12,6 @@ type MonitoringGroups struct {
 	gorm.Model
 	Name       	string      `gorm:"size:255" form:"label:Название"`
 	WorkGroups 	[]WorkGroup `gorm:"many2many:work_groups_monitoring_groups;" form:"label:Рабочие группы"`
-	Wares 		[]Ware		`gorm:"many2many:wares_monitoring_groups" form:"label:Товары"`
 }
 
 func (region MonitoringGroups) Serializer() types.H {

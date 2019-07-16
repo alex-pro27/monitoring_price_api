@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -35,9 +36,9 @@ func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
 		"ШК товара",
 		"Код товара",
 		"Наименование",
+		"Сегмент",
 		"Группы мониторинга",
 		"Типы мониторинга",
-		"Рабочая группа",
 	}
 	row = sheet.AddRow()
 	headerStyle := xlsx.Style{
@@ -55,9 +56,9 @@ func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
 		"",
 		"33982",
 		"Майонез Провансаль 67% 500г п/ст МЖК Хабаровск",
+		"МАСЛО, МАРГАРИН, МАЙОНЕЗЫ",
 		"Хабаровск, Комсомольск",
 		"KVI, Первые цены",
-		"ЦО, Самбери-9",
 	}
 	for _, title := range example {
 		cell = row.AddCell()
@@ -122,8 +123,10 @@ func UpdateWares(w http.ResponseWriter, r *http.Request) {
 	}
 	wareCodes := make([]string, 0)
 	monitoringTypeNames := make([]string, 0)
-	monitoringGroupsNames := make([]string, 0)
-	workGroupNames := make([]string, 0)
+	monitoringGroupNames := make([]string, 0)
+	segmentsCodes := make([]string, 0)
+
+	pattern := regexp.MustCompile("^(?P<Code>\\d+)\\s*(?P<Name>.+)")
 	_wares := make(map[string]map[string]interface{}, 0)
 	for _, sheet := range xlFile.Sheets {
 		for i, row := range sheet.Rows {
@@ -131,6 +134,7 @@ func UpdateWares(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			ware := make(map[string]interface{})
+
 			for index, cell := range row.Cells {
 				text := cell.String()
 				switch index {
@@ -144,105 +148,152 @@ func UpdateWares(w http.ResponseWriter, r *http.Request) {
 				case 2:
 					ware["name"] = text
 					break
-				case 3, 4, 5:
+				case 3:
+					seg := pattern.FindStringSubmatch(text)
+					if len(seg) > 2 {
+						ware["segment"] = seg[2]
+						ware["segment_code"] = seg[1]
+						segmentsCodes = append(segmentsCodes, seg[1])
+					}
+					break
+				case 4, 5:
 					names := koazee.StreamOf(strings.Split(text, ",")).Map(func(w string) string {
 						return strings.Trim(w, " ")
 					}).Out().Val().([]string)
 					switch index {
-					case 3:
-						ware["monitoring_groups"] = names
-						monitoringGroupsNames = append(monitoringGroupsNames, names...)
-						break
 					case 4:
+						ware["monitoring_groups"] = names
+						monitoringGroupNames = append(monitoringGroupNames, names...)
+						break
+					case 5:
 						ware["monitoring_types"] = names
 						monitoringTypeNames = append(monitoringTypeNames, names...)
 						break
-					case 5:
-						ware["work_groups"] = names
-						workGroupNames = append(workGroupNames, names...)
 					}
 				}
-
 			}
 			_wares[ware["code"].(string)] = ware
 		}
 	}
 	monitoringTypeNames = koazee.StreamOf(monitoringTypeNames).RemoveDuplicates().Out().Val().([]string)
-	monitoringGroupsNames = koazee.StreamOf(monitoringGroupsNames).RemoveDuplicates().Out().Val().([]string)
-	workGroupNames = koazee.StreamOf(workGroupNames).RemoveDuplicates().Out().Val().([]string)
+	monitoringGroupNames = koazee.StreamOf(monitoringGroupNames).RemoveDuplicates().Out().Val().([]string)
+	segmentsCodes = koazee.StreamOf(segmentsCodes).RemoveDuplicates().Out().Val().([]string)
 
 	db := context.Get(r, "DB").(*gorm.DB)
 	var wares []models.Ware
 	var monitoringTypes []models.MonitoringType
-	var monitoringGroups []models.MonitoringGroups
-	var workGroups []models.WorkGroup
+	var segments []models.Segment
+
+	db.Find(&segments, "code IN (?)", segmentsCodes)
+	segmentsStream := koazee.StreamOf(segments)
+
+	type MS struct {
+		ID 			uint
+		GroupName 	string
+	}
+
+	monitoringShopsIDGroupName := []MS{}
+
+	db.Model(models.MonitoringShop{}).Select("DISTINCT monitoring_shops.id id, mg.name group_name").Joins(
+		"INNER JOIN work_groups_monitoring_shops wgms ON wgms.monitoring_shop_id = monitoring_shops.id",
+	).Joins(
+		"INNER JOIN work_groups_monitoring_groups wgmg ON wgmg.work_group_id = wgms.work_group_id",
+	).Joins(
+		"INNER JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
+	).Where("mg.name IN (?)", monitoringGroupNames).Scan(&monitoringShopsIDGroupName)
+
 	db.Find(&wares, "code IN (?)", wareCodes)
 	db.Find(&monitoringTypes, "name IN (?)", monitoringTypeNames)
-	db.Find(&monitoringGroups, "name IN (?)", monitoringGroupsNames)
-	db.Find(&workGroups, "name IN (?)", workGroupNames)
 
 	monitoringTypesStream := koazee.StreamOf(monitoringTypes)
-	monitoringGroupsStream := koazee.StreamOf(monitoringGroups)
-	workGroupsStream := koazee.StreamOf(workGroups)
+	monitoringShopsIDGroupNameStream := koazee.StreamOf(monitoringShopsIDGroupName)
+	monitoringShopsIDX := monitoringShopsIDGroupNameStream.Map(func(ms MS) uint {return ms.ID}).RemoveDuplicates().Out().Val().([]uint)
 
+	var monitoringShops []models.MonitoringShop
+	db.Find(&monitoringShops, "id IN (?)", monitoringShopsIDX)
+
+	_monitoringShopsByGroup := make(map[string][]models.MonitoringShop)
+
+	for _, mg := range monitoringShopsIDGroupName {
+		for _, monitoringShop := range monitoringShops {
+			if monitoringShop.ID == mg.ID {
+				if _monitoringShopsByGroup[mg.GroupName] == nil {
+					_monitoringShopsByGroup[mg.GroupName] = make([]models.MonitoringShop, 0)
+				}
+				_monitoringShopsByGroup[mg.GroupName] = append(_monitoringShopsByGroup[mg.GroupName], monitoringShop)
+			}
+		}
+	}
+	tx := db.Begin()
 	for _, ware := range wares {
 		_ware := _wares[ware.Code]
 		_ware["exist"] = true
+		segment := segmentsStream.Filter(func(s models.Segment) bool {return s.Code == _ware["segment_code"]}).Out().Val()
+		if segment != nil && len(segment.([]models.Segment)) > 0 {
+			segment = segment.([]models.Segment)[0]
+ 		} else {
+ 			segment = models.Segment{
+ 				Name: _ware["segment"].(string),
+ 				Code: _ware["segment_code"].(string),
+			}
+		}
+		tx.Save(&segment)
+		ware.Segment = segment.(models.Segment)
+
 		mt := monitoringTypesStream.Filter(func(mt models.MonitoringType) bool {
 			res, _ := koazee.StreamOf(_ware["monitoring_types"].([]string)).IndexOf(mt.Name)
 			return res > -1
 		}).Out().Val()
-		mg := monitoringGroupsStream.Filter(func(mt models.MonitoringGroups) bool {
-			res, _ := koazee.StreamOf(_ware["monitoring_groups"].([]string)).IndexOf(mt.Name)
-			return res > -1
-		}).Out().Val()
-		wg := workGroupsStream.Filter(func(mt models.WorkGroup) bool {
-			res, _ := koazee.StreamOf(_ware["work_groups"].([]string)).IndexOf(mt.Name)
-			return res > -1
-		}).Out().Val()
+
 		ware.Name = _ware["name"].(string)
-		if mg != nil {
-			ware.MonitoringGroups = mg.([]models.MonitoringGroups)
-		}
 		if mt != nil {
 			ware.MonitoringType = mt.([]models.MonitoringType)
 		}
-		if wg != nil {
-			ware.WorkGroups = wg.([]models.WorkGroup)
+		for _, mg := range _ware["monitoring_groups"].([]string) {
+			ware.MonitoringShops = _monitoringShopsByGroup[mg]
 		}
-		db.Save(ware)
+
+		tx.Save(&ware)
 	}
+
 	for _, _ware := range _wares {
 		if _ware["exist"] == nil {
 			ware := models.Ware{
 				Code: _ware["code"].(string),
 				Name: _ware["name"].(string),
 			}
+
+			segment := segmentsStream.Filter(func(s models.Segment) bool {return s.Code == _ware["segment_code"]}).Out().Val()
+			if segment != nil && len(segment.([]models.Segment)) > 0 {
+				segment = segment.([]models.Segment)[0]
+			} else {
+				segment = models.Segment{
+					Name: _ware["segment"].(string),
+					Code: _ware["segment_code"].(string),
+				}
+			}
+			tx.Save(&segment)
+			ware.Segment = segment.(models.Segment)
+
 			mt := monitoringTypesStream.Filter(func(mt models.MonitoringType) bool {
 				res, _ := koazee.StreamOf(_ware["monitoring_types"].([]string)).IndexOf(mt.Name)
 				return res > -1
 			}).Out().Val()
-			mg := monitoringGroupsStream.Filter(func(mt models.MonitoringGroups) bool {
-				res, _ := koazee.StreamOf(_ware["monitoring_groups"].([]string)).IndexOf(mt.Name)
-				return res > -1
-			}).Out().Val()
-			wg := workGroupsStream.Filter(func(mt models.WorkGroup) bool {
-				res, _ := koazee.StreamOf(_ware["work_groups"].([]string)).IndexOf(mt.Name)
-				return res > -1
-			}).Out().Val()
 			ware.Name = _ware["name"].(string)
-			if mg != nil {
-				ware.MonitoringGroups = mg.([]models.MonitoringGroups)
-			}
 			if mt != nil {
 				ware.MonitoringType = mt.([]models.MonitoringType)
 			}
-			if wg != nil {
-				ware.WorkGroups = wg.([]models.WorkGroup)
+
+			for _, mg := range _ware["monitoring_groups"].([]string) {
+				ware.MonitoringShops = _monitoringShopsByGroup[mg]
 			}
-			db.Save(ware)
+
+			tx.Save(&ware)
 		}
 	}
+
+	tx.Commit()
+
 	common.JSONResponse(w, types.H{
 		"success": true,
 	})
