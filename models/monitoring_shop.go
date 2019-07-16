@@ -14,29 +14,29 @@ type MonitoringShop struct {
 	/**
 	Название
 	*/
-	Name string 			`gorm:"size:255" form:"label:Имя;required"`
+	Name string `gorm:"size:255" form:"label:Имя;required"`
 	/**
 	Адрес магазина
 	*/
-	Address string 			`gorm:"size:255" form:"label:Адрес"`
+	Address string `gorm:"size:255" form:"label:Адрес"`
 	/**
 	Код магазина(для 1с)
 	*/
-	Code string 			`gorm:"size:255" form:"label:Код"`
+	Code string `gorm:"size:255" form:"label:Код"`
 	/**
 	Обязательность фотографирования
 	*/
-	IsMustPhoto bool 		`form:"label:Обязательность фотографирования"`
+	IsMustPhoto bool `form:"label:Обязательность фотографирования"`
 	/**
 	Группа мониторинга
 	*/
-	WorkGroup []WorkGroup 	`gorm:"many2many:work_groups_monitoring_shops;" form:"label:Рабочая группа"`
+	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;" form:"label:Рабочая группа"`
 	/**
 	Товары
 	*/
-	Wares 	 []Ware 		`gorm:"many2many:monitoring_shops_wares;" form:"label: Товары"`
+	Wares []Ware `gorm:"many2many:monitoring_shops_wares;"form:"label:Товары;group_by:Segment"`
 
-	Active   bool      		`gorm:"default:true" form:"label:Активный;type:switch"`
+	Active bool `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (monitoringShop MonitoringShop) Serializer() types.H {
@@ -64,6 +64,7 @@ func (MonitoringShop) Admin() types.AdminMeta {
 			{Name: "Name"},
 			{Name: "Address"},
 		},
+		Preload: []string{"Wares.Segment"},
 	}
 }
 

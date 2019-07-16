@@ -116,6 +116,12 @@ func (user User) Admin() types.AdminMeta {
 				Label: "Рабочая группа",
 			},
 		},
+		FilterFields: []types.AdminMetaField{
+			{
+				Name:  "WorkGroups.ID",
+				Label: "По рабочей группе",
+			},
+		},
 	}
 }
 

@@ -78,7 +78,23 @@ func RegisterAdminRoutes(r *mux.Router) {
 		},
 	}
 
+	waresRoutes := []Route{
+		{
+			Path:    "/update-wares",
+			Handler: admin.UpdateWares,
+			Access:  models.WRITE,
+			Methods: []string{"POST"},
+		},
+		{
+			Path:    "/product-template-file",
+			Handler: admin.GetTemplateBlank,
+			Access:  models.READ,
+			Methods: []string{"GET"},
+		},
+	}
+
 	RegisterRoutes(router, noCheckAuthRoutes, nil)
 	RegisterRoutes(authRouter, usersRoutes, models.User{})
+	RegisterRoutes(authRouter, waresRoutes, models.Ware{})
 	RegisterRoutes(authRouter, contentTypesRoutes, nil)
 }
