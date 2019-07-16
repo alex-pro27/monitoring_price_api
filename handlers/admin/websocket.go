@@ -13,16 +13,16 @@ import (
 
 type AdminWebSocketHandler struct {
 	Server *common.WebSocket
-	Users map[string]int
-	db *gorm.DB
+	Users  map[string]int
+	db     *gorm.DB
 }
 
-func (h AdminWebSocketHandler) Emit(token, event string, message types.H)  {
+func (h AdminWebSocketHandler) Emit(token, event string, message types.H) {
 	clientID := AdminWebSocket.Users[token]
 	h.Server.Emit(clientID, event, message)
 }
 
-func (h *AdminWebSocketHandler)OnOpen(clientID int) {
+func (h *AdminWebSocketHandler) OnOpen(clientID int) {
 	h.Server.Emit(clientID, "on_open", types.H{
 		"message": fmt.Sprintf("client on connected %d", clientID),
 	})
@@ -49,12 +49,15 @@ func (h *AdminWebSocketHandler) OnConnect(clientID int, message types.H) {
 	}
 	if !user.IsStaff {
 		h.Server.Emit(clientID, "on_connect", types.H{
-			"error": true,
-			"code": 403,
+			"error":   true,
+			"code":    403,
 			"message": "Permission denied",
 		})
 		logger.Logger.Warning("Admin Websocket error: Permission denied")
-		logger.HandleError(h.Server.Client(clientID).Close())
+		client := h.Server.Client(clientID)
+		if client != nil {
+			logger.HandleError(client.Close())
+		}
 		return
 	}
 	h.Users[user.Token.Key] = clientID
@@ -70,8 +73,8 @@ func StartWebsocket(w http.ResponseWriter, r *http.Request) {
 	db := context.Get(r, "DB").(*gorm.DB)
 	AdminWebSocket = &AdminWebSocketHandler{
 		Server: &ws,
-		Users: make(map[string]int),
-		db: db,
+		Users:  make(map[string]int),
+		db:     db,
 	}
 	ws.SetUpgrader(common.DefaultUpgrader)
 	ws.SetEventHandlers(AdminWebSocket)

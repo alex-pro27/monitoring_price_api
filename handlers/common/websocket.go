@@ -25,13 +25,13 @@ type MessageHandlers interface {
 }
 
 type WebSocket struct {
-	upgrader websocket.Upgrader
-	clients []*websocket.Conn
-	messageHandlers *MessageHandlers
+	upgrader           websocket.Upgrader
+	clients            []*websocket.Conn
+	messageHandlers    *MessageHandlers
 	objMessageHandlers reflect.Value
 }
 
-func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request)  {
+func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 	client, err := ws.upgrader.Upgrade(w, r, nil)
 	clientID := ws.addClient(client)
@@ -49,8 +49,8 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request)  {
 		}
 
 		data := struct {
-			Event string    `json:"event"`
-			Data  types.H 	`json:"data"`
+			Event string  `json:"event"`
+			Data  types.H `json:"data"`
 		}{}
 
 		err = json.Unmarshal(message, &data)
@@ -75,9 +75,9 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request)  {
 			body, err = json.Marshal(types.H{
 				"event": "event_error",
 				"data": types.H{
-					"error": true,
+					"error":   true,
 					"message": fmt.Sprintf("Event %s not supported", data.Event),
-					"code": 404,
+					"code":    404,
 				},
 			})
 			logger.Logger.Warning(string(body))
@@ -100,16 +100,19 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request)  {
 func (ws WebSocket) Emit(clientID int, event string, data types.H) {
 	body, err := json.Marshal(types.H{
 		"event": event,
-		"data": data,
+		"data":  data,
 	})
 	if err != nil {
 		logger.Logger.Error(err)
 		return
 	}
-	logger.HandleError(ws.Client(clientID).WriteMessage(1, body))
+	client := ws.Client(clientID)
+	if client != nil {
+		logger.HandleError(ws.Client(clientID).WriteMessage(1, body))
+	}
 }
 
-func (ws *WebSocket) SetUpgrader(upgrader websocket.Upgrader)  {
+func (ws *WebSocket) SetUpgrader(upgrader websocket.Upgrader) {
 	ws.upgrader = upgrader
 }
 
@@ -119,19 +122,21 @@ func (ws *WebSocket) addClient(client *websocket.Conn) int {
 }
 
 func (ws *WebSocket) removeClient(clientID int) {
-	ws.clients = append(ws.clients[:clientID], ws.clients[clientID + 1:]...)
+	ws.clients = append(ws.clients[:clientID], ws.clients[clientID+1:]...)
 }
 
-func (ws *WebSocket) Clients() []*websocket.Conn  {
+func (ws *WebSocket) Clients() []*websocket.Conn {
 	return ws.clients
 }
 
-func (ws *WebSocket) Client(clientID int) *websocket.Conn  {
-	return ws.clients[clientID]
+func (ws *WebSocket) Client(clientID int) *websocket.Conn {
+	if len(ws.clients) >= clientID {
+		return ws.clients[clientID]
+	}
+	return nil
 }
 
-func (ws *WebSocket) SetEventHandlers(h MessageHandlers)  {
+func (ws *WebSocket) SetEventHandlers(h MessageHandlers) {
 	ws.messageHandlers = &h
 	ws.objMessageHandlers = reflect.ValueOf(h)
 }
-
