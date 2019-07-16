@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/logger"
+	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -26,8 +27,7 @@ type MessageHandlers interface {
 type WebSocket struct {
 	upgrader websocket.Upgrader
 	clients []*websocket.Conn
-	mt map[int]int
-	messageHandlers MessageHandlers
+	messageHandlers *MessageHandlers
 	objMessageHandlers reflect.Value
 }
 
@@ -39,18 +39,18 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request)  {
 		log.Print("upgrade:", err)
 		return
 	}
+	(*ws.messageHandlers).OnOpen(clientID)
 
 	for {
 		mt, message, err := client.ReadMessage()
-		ws.mt[clientID] = mt
 		if err != nil {
 			logger.HandleError(err)
 			break
 		}
 
 		data := struct {
-			Event string                 `json:"event"`
-			Data  map[string]interface{} `json:"data"`
+			Event string    `json:"event"`
+			Data  types.H 	`json:"data"`
 		}{}
 
 		err = json.Unmarshal(message, &data)
@@ -69,11 +69,18 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request)  {
 		if method.Kind() != reflect.Invalid {
 			method.Call([]reflect.Value{
 				reflect.ValueOf(clientID),
-				reflect.ValueOf(data),
-			})[0].Interface()
+				reflect.ValueOf(data.Data),
+			})
 		} else {
-			body = []byte(fmt.Sprintf("Event %s not supported", data.Event))
-			logger.Logger.Warning(body)
+			body, err = json.Marshal(types.H{
+				"event": "event_error",
+				"data": types.H{
+					"error": true,
+					"message": fmt.Sprintf("Event %s not supported", data.Event),
+					"code": 404,
+				},
+			})
+			logger.Logger.Warning(string(body))
 			err = client.WriteMessage(mt, body)
 			if err != nil {
 				logger.HandleError(err)
@@ -85,18 +92,21 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request)  {
 
 	defer func() {
 		logger.HandleError(client.Close())
-		ws.messageHandlers.OnClose(clientID)
+		(*ws.messageHandlers).OnClose(clientID)
 		ws.removeClient(clientID)
 	}()
 }
 
-func (ws WebSocket) Emmit(clientID int, data map[string]interface{}) {
-	body, err := json.Marshal(data)
+func (ws WebSocket) Emit(clientID int, event string, data types.H) {
+	body, err := json.Marshal(types.H{
+		"event": event,
+		"data": data,
+	})
 	if err != nil {
 		logger.Logger.Error(err)
 		return
 	}
-	logger.HandleError(ws.clients[clientID].WriteMessage(ws.mt[clientID], body))
+	logger.HandleError(ws.Client(clientID).WriteMessage(1, body))
 }
 
 func (ws *WebSocket) SetUpgrader(upgrader websocket.Upgrader)  {
@@ -121,7 +131,7 @@ func (ws *WebSocket) Client(clientID int) *websocket.Conn  {
 }
 
 func (ws *WebSocket) SetEventHandlers(h MessageHandlers)  {
-	ws.messageHandlers = h
+	ws.messageHandlers = &h
 	ws.objMessageHandlers = reflect.ValueOf(h)
 }
 

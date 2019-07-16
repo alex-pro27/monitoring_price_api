@@ -176,6 +176,14 @@
   revision = "83c6a9932646f83e3267f353373d47347b6036b2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:cab7de2a2d86a30961457dc88dfc6330d9d89eb0a2833e3459b16d73c80f41f5"
+  name = "github.com/otium/queue"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9aab6b722ecdf21660568142d77b62182161e9ce"
+
+[[projects]]
   digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -466,6 +474,7 @@
     "github.com/jinzhu/now",
     "github.com/lib/pq",
     "github.com/nfnt/resize",
+    "github.com/otium/queue",
     "github.com/pkg/errors",
     "github.com/tealeg/xlsx",
     "github.com/wesovilabs/koazee",

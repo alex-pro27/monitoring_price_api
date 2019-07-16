@@ -6,7 +6,6 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/helpers"
-	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
@@ -437,7 +436,6 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "PUT":
 			if res := db.FirstOrCreate(model, model); res.Error != nil {
-				logger.Logger.Error(res.Error)
 				common.ErrorResponse(w, r, "Ошибка добавления записи")
 				return
 			}
@@ -445,7 +443,6 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 			break
 		case "POST":
 			if res := db.Save(model); res.Error != nil {
-				logger.Logger.Error(res.Error)
 				common.ErrorResponse(w, r, "Ошибка обновления записи")
 				return
 			}
@@ -453,8 +450,8 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 			break
 		case "DELETE":
 			if res := db.Delete(model, id); res.Error != nil {
-				logger.Logger.Error(res.Error)
 				common.ErrorResponse(w, r, "Ошибка удаления записи")
+				return
 			}
 			break
 		}

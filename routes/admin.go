@@ -93,8 +93,17 @@ func RegisterAdminRoutes(r *mux.Router) {
 		},
 	}
 
+	websockets := []Route{
+		{
+			Path: "/ws",
+			Handler: admin.StartWebsocket,
+			Methods: []string{"GET", "POST",},
+		},
+	}
+
 	RegisterRoutes(router, noCheckAuthRoutes, nil)
 	RegisterRoutes(authRouter, usersRoutes, models.User{})
 	RegisterRoutes(authRouter, waresRoutes, models.Ware{})
+	RegisterRoutes(router, websockets, nil)
 	RegisterRoutes(authRouter, contentTypesRoutes, nil)
 }
