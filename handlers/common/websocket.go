@@ -130,7 +130,7 @@ func (ws *WebSocket) Clients() []*websocket.Conn {
 }
 
 func (ws *WebSocket) Client(clientID int) *websocket.Conn {
-	if len(ws.clients) >= clientID {
+	if len(ws.clients) > clientID {
 		return ws.clients[clientID]
 	}
 	return nil
