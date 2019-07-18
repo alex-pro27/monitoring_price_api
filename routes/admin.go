@@ -29,14 +29,14 @@ func RegisterAdminRoutes(r *mux.Router) {
 			Handler: admin.Logout,
 			Methods: []string{"GET", "POST"},
 		},
+	}
+
+	contentTypesRoutes := []Route{
 		{
 			Path:    "/check-auth",
 			Handler: admin.CheckAuth,
 			Methods: []string{"GET", "POST"},
 		},
-	}
-
-	contentTypesRoutes := []Route{
 		{
 			Path:    "/available-views",
 			Handler: admin.GetAvailableViews,

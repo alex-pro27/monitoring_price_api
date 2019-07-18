@@ -2,6 +2,7 @@ package admin
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/logger"
@@ -82,9 +83,8 @@ func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	bufferBytes = buffer.Bytes()
-	itoa := strconv.Itoa(len(bufferBytes))
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Length", itoa)
+	w.Header().Set("Content-Length", strconv.Itoa(len(bufferBytes)))
 	w.Header().Set("Content-Disposition", "attachment; filename=Products_blank.xlsx")
 	_, err = w.Write(bufferBytes)
 	logger.HandleError(err)
@@ -133,9 +133,31 @@ func UpdateWares(w http.ResponseWriter, r *http.Request) {
 
 
 func taskUpdateWare(args interface{}) {
+
 	xlFile := args.([]interface{})[0].(*xlsx.File)
-	db := databases.ConnectDefaultDB()
 	token := args.([]interface{})[1].(string)
+	db := databases.ConnectDefaultDB()
+	tx := db.Begin()
+
+	defer func() {
+		if rec := recover(); rec != nil {
+			tx.Rollback()
+			logger.Logger.Errorf("Error parse product list xls file: %v", rec)
+			if AdminWebSocket != nil {
+				AdminWebSocket.Emit(token, "on_update_products", types.H{
+					"error": true,
+					"message": fmt.Sprintf("Ошибка обновления товаров: %v", rec),
+				})
+			}
+		} else {
+			if AdminWebSocket != nil {
+				AdminWebSocket.Emit(token, "on_update_products", types.H{
+					"message": "Товары успешно обновлены!",
+				})
+			}
+		}
+		logger.HandleError(db.Close())
+	}()
 
 	wareCodes := make([]string, 0)
 	wareNames := make([]string, 0)
@@ -208,7 +230,6 @@ func taskUpdateWare(args interface{}) {
 	wareCodes = koazee.StreamOf(wareCodes).RemoveDuplicates().Out().Val().([]string)
 	wareNames = koazee.StreamOf(wareNames).RemoveDuplicates().Out().Val().([]string)
 
-	tx := db.Begin()
 	var wares []models.Ware
 	var monitoringTypes []models.MonitoringType
 	segments := make([]models.Segment, 0)
@@ -235,11 +256,14 @@ func taskUpdateWare(args interface{}) {
 	tx.Find(&monitoringTypes, "name IN (?)", monitoringTypeNames)
 
 	monitoringTypesStream := koazee.StreamOf(monitoringTypes)
-	monitoringShopsIDGroupNameStream := koazee.StreamOf(monitoringShopsIDGroupName)
-	monitoringShopsIDX := monitoringShopsIDGroupNameStream.Map(func(ms MS) uint {return ms.ID}).RemoveDuplicates().Out().Val().([]uint)
-
+	monitoringShopsIDX := make([]uint, 0)
 	var monitoringShops []models.MonitoringShop
-	tx.Find(&monitoringShops, "id IN (?)", monitoringShopsIDX)
+	if len(monitoringShopsIDGroupName) > 0 {
+		monitoringShopsIDX = koazee.StreamOf(
+			monitoringShopsIDGroupName,
+		).Map(func(ms MS) uint { return ms.ID }).RemoveDuplicates().Out().Val().([]uint)
+		tx.Find(&monitoringShops, "id IN (?)", monitoringShopsIDX)
+	}
 
 	_monitoringShopsByGroup := make(map[string][]models.MonitoringShop)
 
@@ -345,8 +369,4 @@ func taskUpdateWare(args interface{}) {
 		}
 	}
 	tx.Commit()
-	AdminWebSocket.Emit(token, "on_update_products", types.H{
-		"message": "Товары успешно обновлены!",
-	})
-	defer logger.HandleError(db.Close())
 }
