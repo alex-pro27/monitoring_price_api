@@ -143,18 +143,14 @@ func taskUpdateWare(args interface{}) {
 		if rec := recover(); rec != nil {
 			tx.Rollback()
 			logger.Logger.Errorf("Error parse product list xls file: %v", rec)
-			if AdminWebSocket != nil {
-				AdminWebSocket.Emit(token, "on_update_products", types.H{
-					"error": true,
-					"message": fmt.Sprintf("Ошибка обновления товаров: %v", rec),
-				})
-			}
+			AdminWebSocket.Emit(token, "on_update_products", types.H{
+				"error": true,
+				"message": fmt.Sprintf("Ошибка обновления товаров: %v", rec),
+			})
 		} else {
-			if AdminWebSocket != nil {
-				AdminWebSocket.Emit(token, "on_update_products", types.H{
-					"message": "Товары успешно обновлены!",
-				})
-			}
+			AdminWebSocket.Emit(token, "on_update_products", types.H{
+				"message": "Товары успешно обновлены!",
+			})
 		}
 		logger.HandleError(db.Close())
 	}()

@@ -19,7 +19,7 @@ var DefaultUpgrader = websocket.Upgrader{
 	},
 }
 
-type WSHandleFunc func(clientID int, message types.H)
+type WSHandleFunc func(clientID int, message types.H, args... interface{})
 
 type MessageHandlers interface {
 	OnOpen(clientID int)

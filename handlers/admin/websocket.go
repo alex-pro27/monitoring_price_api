@@ -28,7 +28,7 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket)  {
 	h.Decorators = []func(handleFunc common.WSHandleFunc) common.WSHandleFunc {
 		/**Handle error*/
 		func(f common.WSHandleFunc) common.WSHandleFunc {
-			return func(clientID int, message types.H) {
+			return func(clientID int, message types.H, args... interface{}) {
 				if rec := recover(); rec != nil {
 					logger.Logger.Errorf("websocket error: %v", rec)
 				}
@@ -38,7 +38,7 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket)  {
 		},
 		/**Connect db*/
 		func(f common.WSHandleFunc) common.WSHandleFunc {
-			return func(clientID int, message types.H) {
+			return func(clientID int, message types.H, args... interface{}) {
 				h.db = databases.ConnectDefaultDB()
 				f(clientID, message)
 				defer logger.HandleError(h.db.Close())
@@ -46,7 +46,7 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket)  {
 		},
 		/**Check user*/
 		func(f common.WSHandleFunc) common.WSHandleFunc {
-			return func(clientID int, message types.H) {
+			return func(clientID int, message types.H, args... interface{}) {
 				user := models.User{}
 				token := message["token"]
 				if token != nil {
@@ -69,16 +69,18 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket)  {
 					h.Users[user.Token.Key] = make([]int, 0)
 				}
 				h.Users[user.Token.Key] = append(h.Users[user.Token.Key], clientID)
-				f(clientID, message)
+				f(clientID, message, user)
 			}
 		},
 	}
 }
 
 func (h AdminWebSocketHandler) Emit(token, event string, message types.H) {
-	clientIDX := AdminWebSocket.Users[token]
-	for _, clientID := range clientIDX {
-		h.Server.Emit(clientID, event, message)
+	if h.IsInit {
+		clientIDX := AdminWebSocket.Users[token]
+		for _, clientID := range clientIDX {
+			h.Server.Emit(clientID, event, message)
+		}
 	}
 }
 
@@ -101,7 +103,7 @@ func (h *AdminWebSocketHandler) OnClose(clientID int) {
 	}
 }
 
-func (h *AdminWebSocketHandler) OnConnect(clientID int, message types.H) {
+func (h *AdminWebSocketHandler) OnConnect(clientID int, message types.H, args... interface{}) {
 	h.Server.Emit(clientID, "on_connect", types.H{
 		"message": "Connected!",
 	})
