@@ -19,6 +19,8 @@ var DefaultUpgrader = websocket.Upgrader{
 	},
 }
 
+type WSHandleFunc func(clientID int, message types.H)
+
 type MessageHandlers interface {
 	OnOpen(clientID int)
 	OnClose(clientID int)
@@ -49,8 +51,8 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data := struct {
-			Event string  `json:"event"`
-			Data  types.H `json:"data"`
+			Event string
+			Data  types.H
 		}{}
 
 		err = json.Unmarshal(message, &data)
@@ -67,10 +69,22 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 
 		method := ws.objMessageHandlers.MethodByName(event)
 		if method.Kind() != reflect.Invalid {
+			decorators := ws.objMessageHandlers.Elem().FieldByName("Decorators")
+
+			if decorators.Kind() == reflect.Slice {
+				println(decorators.Len())
+				for i := decorators.Len() -1; i >= 0; i-- {
+					if decorators.Index(i).Kind() == reflect.Func {
+						method = decorators.Index(i).Call([]reflect.Value{method})[0]
+					}
+				}
+			}
+
 			method.Call([]reflect.Value{
 				reflect.ValueOf(clientID),
 				reflect.ValueOf(data.Data),
 			})
+
 		} else {
 			body, err = json.Marshal(types.H{
 				"event": "event_error",
