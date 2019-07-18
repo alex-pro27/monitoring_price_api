@@ -72,7 +72,6 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 			decorators := ws.objMessageHandlers.Elem().FieldByName("Decorators")
 
 			if decorators.Kind() == reflect.Slice {
-				println(decorators.Len())
 				for i := decorators.Len() -1; i >= 0; i-- {
 					if decorators.Index(i).Kind() == reflect.Func {
 						method = decorators.Index(i).Call([]reflect.Value{method})[0]

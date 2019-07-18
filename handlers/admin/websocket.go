@@ -89,18 +89,15 @@ func (h *AdminWebSocketHandler) OnOpen(clientID int) {
 }
 
 func (h *AdminWebSocketHandler) OnClose(clientID int) {
-	var token string
-	for _token, idx := range h.Users {
+	for token, idx := range h.Users {
 		if len(idx) > 0 {
-			if idx[0] == clientID {
-				token = _token
-				break
+			for i, id := range idx {
+				if id == clientID {
+					h.Users[token] = append(h.Users[token][:i], h.Users[token][i+1:]...)
+					break
+				}
 			}
 		}
-
-	}
-	if token != "" {
-		delete(h.Users, token)
 	}
 }
 
