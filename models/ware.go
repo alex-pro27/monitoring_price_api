@@ -28,6 +28,10 @@ func (ware Ware) GetMonitoringType() string {
 	return strings.Join(names, ", ")
 }
 
+func (ware Ware) GetSegmentName() string {
+	return fmt.Sprintf("%s %s", ware.Segment.Code, ware.Segment.Name)
+}
+
 func (ware Ware) Serializer() types.H {
 	return types.H{
 		"id":          ware.ID,
@@ -52,13 +56,14 @@ func (Ware) Admin() types.AdminMeta {
 		Preload:       []string{"Segment", "MonitoringType"},
 		OrderBy:       []string{"SegmentId", "Name"},
 		SortFields: []types.AdminMetaField{
+			{Name: "UpdatedAt", ToHTML: "datetime", Label: "Дата обновления"},
 			{Name: "Name"},
 			{Name: "Barcode"},
 			{Name: "Active"},
 		},
 		ExtraFields: []types.AdminMetaField{
 			{
-				Name:  "Segment.Name",
+				Name:  "GetSegmentName",
 				Label: "Сегмент",
 			},
 			{
