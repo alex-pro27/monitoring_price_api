@@ -34,11 +34,11 @@ func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
 
 	var responseData []types.H
 
-	for _, ms := range monitoringShops {
-		if len(ms.Wares) > 0 {
-			responseData = append(responseData, ms.Serializer())
-		}
-	}
+	//for _, ms := range monitoringShops {
+	//	if len(ms.Wares) > 0 {
+	//		responseData = append(responseData, ms.Serializer())
+	//	}
+	//}
 
 	common.JSONResponse(w, responseData)
 }

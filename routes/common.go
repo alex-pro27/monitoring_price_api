@@ -19,13 +19,13 @@ func RegisterRoutes(r *mux.Router, routes []Route, model interface{}) {
 	for _, route := range routes {
 		handler := route.Handler
 		if model != nil {
-			handler = checkPermissionDecorator(route.Access, model)(handler)
+			handler = CheckPermissionDecorator(route.Access, model)(handler)
 		}
 		r.HandleFunc(route.Path, handler).Methods(route.Methods...)
 	}
 }
 
-func checkPermissionDecorator(
+func CheckPermissionDecorator(
 	access models.PermissionAccess,
 	model interface{},
 ) func(handler types.HTTPHandler) types.HTTPHandler {

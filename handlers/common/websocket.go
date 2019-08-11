@@ -19,7 +19,7 @@ var DefaultUpgrader = websocket.Upgrader{
 	},
 }
 
-type WSHandleFunc func(clientID int, message types.H, args... interface{})
+type WSHandleFunc func(clientID int, message types.H, args ...interface{})
 
 type MessageHandlers interface {
 	OnOpen(clientID int)
@@ -72,7 +72,7 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 			decorators := ws.objMessageHandlers.Elem().FieldByName("Decorators")
 
 			if decorators.Kind() == reflect.Slice {
-				for i := decorators.Len() -1; i >= 0; i-- {
+				for i := decorators.Len() - 1; i >= 0; i-- {
 					if decorators.Index(i).Kind() == reflect.Func {
 						method = decorators.Index(i).Call([]reflect.Value{method})[0]
 					}

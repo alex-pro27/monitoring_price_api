@@ -19,7 +19,7 @@ type User struct {
 	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
 	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
 	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
-	WorkGroup   []WorkGroup `gorm:"many2many:users_work_groups;" form:"label:Рабочая группа"`
+	WorkGroup   []WorkGroup `gorm:"many2many:users_work_groups;" form:"label:Рабочая группа(По группам мониторинга);group_by:MonitoringGroups"`
 	Online      bool        `gorm:"default:false" form:"disabled"`
 	Active      bool        `gorm:"default:true" form:"type:switch;label:Активировать"`
 	IsSuperUser bool        `gorm:"default:false"`

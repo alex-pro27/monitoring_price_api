@@ -48,6 +48,11 @@ func RegisterAdminRoutes(r *mux.Router) {
 			Methods: []string{"GET"},
 		},
 		{
+			Path:    "/content-types/filter",
+			Handler: admin.FilteredContentType,
+			Methods: []string{"GET"},
+		},
+		{
 			Path:    "/content-type/{id:[0-9]+}",
 			Handler: admin.GetContentTypeFields,
 			Methods: []string{"GET"},
@@ -81,7 +86,7 @@ func RegisterAdminRoutes(r *mux.Router) {
 	waresRoutes := []Route{
 		{
 			Path:    "/update-wares",
-			Handler: admin.UpdateWares,
+			Handler: admin.UpdateMonitorings,
 			Access:  models.WRITE,
 			Methods: []string{"POST"},
 		},
@@ -95,9 +100,9 @@ func RegisterAdminRoutes(r *mux.Router) {
 
 	websockets := []Route{
 		{
-			Path: "/ws",
-			Handler: admin.StartWebsocket,
-			Methods: []string{"GET", "POST",},
+			Path:    "/ws",
+			Handler: admin.HandleWebsocket,
+			Methods: []string{"GET", "POST"},
 		},
 	}
 

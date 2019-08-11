@@ -12,23 +12,23 @@ import (
 )
 
 type AdminWebSocketHandler struct {
-	Server *common.WebSocket
-	Users  map[string][]int
-	IsInit bool
+	Server     *common.WebSocket
+	Users      map[string][]int
+	IsInit     bool
 	Decorators []func(handleFunc common.WSHandleFunc) common.WSHandleFunc
-	db *gorm.DB
+	db         *gorm.DB
 }
 
-func (h *AdminWebSocketHandler) Init(server *common.WebSocket)  {
+func (h *AdminWebSocketHandler) Init(server *common.WebSocket) {
 	h.Server = server
 	h.Server.SetUpgrader(common.DefaultUpgrader)
 	h.Server.SetEventHandlers(h)
 	h.Users = make(map[string][]int)
 	h.IsInit = true
-	h.Decorators = []func(handleFunc common.WSHandleFunc) common.WSHandleFunc {
+	h.Decorators = []func(handleFunc common.WSHandleFunc) common.WSHandleFunc{
 		/**Handle error*/
 		func(f common.WSHandleFunc) common.WSHandleFunc {
-			return func(clientID int, message types.H, args... interface{}) {
+			return func(clientID int, message types.H, args ...interface{}) {
 				if rec := recover(); rec != nil {
 					logger.Logger.Errorf("websocket error: %v", rec)
 				}
@@ -38,16 +38,16 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket)  {
 		},
 		/**Connect db*/
 		func(f common.WSHandleFunc) common.WSHandleFunc {
-			return func(clientID int, message types.H, args... interface{}) {
+			return func(clientID int, message types.H, args ...interface{}) {
 				h.db = databases.ConnectDefaultDB()
 				f(clientID, message)
-				defer logger.HandleError(h.db.Close())
+				logger.HandleError(h.db.Close())
 			}
 		},
 		/**Check user*/
 		func(f common.WSHandleFunc) common.WSHandleFunc {
-			return func(clientID int, message types.H, args... interface{}) {
-				user := models.User{}
+			return func(clientID int, message types.H, args ...interface{}) {
+				user := new(models.User)
 				token := message["token"]
 				if token != nil {
 					user.Manager(h.db).GetUserByToken(message["token"].(string))
@@ -84,6 +84,18 @@ func (h AdminWebSocketHandler) Emit(token, event string, message types.H) {
 	}
 }
 
+func (h AdminWebSocketHandler) EmitAll(excludeClientID int, event string, message types.H) {
+	if h.IsInit {
+		for _, clientIDX := range h.Users {
+			for _, clientID := range clientIDX {
+				if excludeClientID != clientID {
+					h.Server.Emit(clientID, event, message)
+				}
+			}
+		}
+	}
+}
+
 func (h *AdminWebSocketHandler) OnOpen(clientID int) {
 	h.Server.Emit(clientID, "on_open", types.H{
 		"message": fmt.Sprintf("client on connected %d", clientID),
@@ -91,29 +103,52 @@ func (h *AdminWebSocketHandler) OnOpen(clientID int) {
 }
 
 func (h *AdminWebSocketHandler) OnClose(clientID int) {
-	for token, idx := range h.Users {
+	var token string
+	for _token, idx := range h.Users {
 		if len(idx) > 0 {
 			for i, id := range idx {
 				if id == clientID {
-					h.Users[token] = append(h.Users[token][:i], h.Users[token][i+1:]...)
+					h.Users[_token] = append(h.Users[_token][:i], h.Users[_token][i+1:]...)
+					if len(h.Users[_token]) == 0 {
+						token = _token
+					}
 					break
 				}
 			}
 		}
 	}
+	if token != "" {
+		db := databases.ConnectDefaultDB()
+		user := new(models.User)
+		user.Manager(db).GetUserByToken(token)
+		user.Online = false
+		db.Save(user)
+		logger.HandleError(h.db.Close())
+		h.EmitAll(-1, "client_leaved", map[string]interface{}{
+			"client_name": user.GetFullName(),
+		})
+	}
 }
 
-func (h *AdminWebSocketHandler) OnConnect(clientID int, message types.H, args... interface{}) {
+func (h *AdminWebSocketHandler) OnConnect(clientID int, message types.H, args ...interface{}) {
+	user := args[0].(*models.User)
+	user.Online = true
+	h.db.Save(user)
 	h.Server.Emit(clientID, "on_connect", types.H{
 		"message": "Connected!",
 	})
+	if len(h.Users[user.Token.Key]) == 1 {
+		h.EmitAll(clientID, "client_joined", map[string]interface{}{
+			"client_name": user.GetFullName(),
+		})
+	}
 }
 
-var AdminWebSocket = &AdminWebSocketHandler{}
+var AdminWebSocket = new(AdminWebSocketHandler)
 
-func StartWebsocket(w http.ResponseWriter, r *http.Request) {
+func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 	if !AdminWebSocket.IsInit {
-		AdminWebSocket.Init(&common.WebSocket{})
+		AdminWebSocket.Init(new(common.WebSocket))
 	}
 	AdminWebSocket.Server.Handle(w, r)
 }

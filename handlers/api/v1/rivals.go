@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-	"github.com/wesovilabs/koazee"
 	"net/http"
 	"strings"
 )
@@ -18,7 +17,7 @@ import (
 */
 func GetRivals(w http.ResponseWriter, r *http.Request) {
 	db := context.Get(r, "DB").(*gorm.DB)
-	periods := (&models.Period{}).Manager(db).GetAvailablePeriods()
+	periods := (new(models.Period)).Manager(db).GetAvailablePeriods()
 	vars := mux.Vars(r)
 	_regions := strings.Builder{}
 	for _, region := range strings.Split(vars["region"], "-") {
@@ -68,44 +67,44 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 	)
 
 	var data []types.H
-	listInList := koazee.StreamOf(rivals).Map(func(ms models.MonitoringShop) []uint {
-		return koazee.StreamOf(ms.Wares).Map(func(w models.Ware) uint {return w.SegmentId}).Out().Val().([]uint)
-	}).Out().Val().([][]uint)
-	segmentsIDX := koazee.StreamOf(listInList).Reduce(func(s, x []uint) []uint {return append(s, x...)}).Val().([]uint)
-	segmentsIDX = koazee.StreamOf(segmentsIDX).RemoveDuplicates().Out().Val().([]uint)
-	var _segments []models.Segment
-	db.Find(&_segments, "id in (?)", segmentsIDX)
-
-	for _, rival := range rivals {
-		var segments []types.H
-		for _, segment := range _segments {
-			var waresIDX []uint
-			for _, ware := range rival.Wares {
-				if ware.SegmentId == segment.ID {
-					waresIDX = append(waresIDX, ware.ID)
-				}
-			}
-
-			if len(waresIDX) == 0 {
-				continue
-			}
-
-			segments = append(segments, types.H{
-				"id":    segment.ID,
-				"code":  segment.Code,
-				"name":  segment.Name,
-				"wares": waresIDX,
-			})
-		}
-		data = append(data, types.H{
-			"id":            rival.ID,
-			"name":          rival.Name,
-			"address":       rival.Address,
-			"region":        rival.WorkGroup[0].MonitoringGroups[0].Name,
-			"segments":      segments,
-			"is_must_photo": rival.IsMustPhoto,
-		})
-	}
+	//listInList := koazee.StreamOf(rivals).Map(func(ms models.MonitoringShop) []uint {
+	//	return koazee.StreamOf(ms.Wares).Map(func(w models.Ware) uint {return w.SegmentId}).Out().Val().([]uint)
+	//}).Out().Val().([][]uint)
+	//segmentsIDX := koazee.StreamOf(listInList).Reduce(func(s, x []uint) []uint {return append(s, x...)}).Val().([]uint)
+	//segmentsIDX = koazee.StreamOf(segmentsIDX).RemoveDuplicates().Out().Val().([]uint)
+	//var _segments []models.Segment
+	//db.Find(&_segments, "id in (?)", segmentsIDX)
+	//
+	//for _, rival := range rivals {
+	//	var segments []types.H
+	//	for _, segment := range _segments {
+	//		var waresIDX []uint
+	//		for _, ware := range rival.Wares {
+	//			if ware.SegmentId == segment.ID {
+	//				waresIDX = append(waresIDX, ware.ID)
+	//			}
+	//		}
+	//
+	//		if len(waresIDX) == 0 {
+	//			continue
+	//		}
+	//
+	//		segments = append(segments, types.H{
+	//			"id":    segment.ID,
+	//			"code":  segment.Code,
+	//			"name":  segment.Name,
+	//			"wares": waresIDX,
+	//		})
+	//	}
+	//	data = append(data, types.H{
+	//		"id":            rival.ID,
+	//		"name":          rival.Name,
+	//		"address":       rival.Address,
+	//		"region":        rival.WorkGroup[0].MonitoringGroups[0].Name,
+	//		"segments":      segments,
+	//		"is_must_photo": rival.IsMustPhoto,
+	//	})
+	//}
 
 	common.JSONResponse(w, data)
 }

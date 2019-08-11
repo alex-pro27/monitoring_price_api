@@ -20,18 +20,19 @@ type Permission struct {
 }
 
 type View struct {
-	ViewID        uint            `json:"view_id"`
-	Path          string          `json:"path"`
-	ContentTypeID uint            `json:"content_type_id"`
-	Name          string          `json:"name"`
-	Plural        string          `json:"plural"`
-	Icon          string          `json:"icon"`
-	ParentID      uint            `json:"parent_id"`
-	Children      []*View         `json:"children"`
-	Permission    Permission      `json:"permission"`
-	ViewType      models.ViewType `json:"view_type"`
-	Menu          bool            `json:"menu"`
-	Position      uint            `json:"-"`
+	ViewID          uint            `json:"view_id"`
+	Path            string          `json:"path"`
+	ContentTypeID   uint            `json:"content_type_id"`
+	ContentTypeName string          `json:"content_type_name"`
+	Name            string          `json:"name"`
+	Plural          string          `json:"plural"`
+	Icon            string          `json:"icon"`
+	ParentID        uint            `json:"parent_id"`
+	Children        []*View         `json:"children"`
+	Permission      Permission      `json:"permission"`
+	ViewType        models.ViewType `json:"view_type"`
+	Menu            bool            `json:"menu"`
+	Position        uint            `json:"-"`
 }
 
 func (view *View) AddChild(child *View) {
@@ -63,31 +64,33 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 				return ct.ID != item.ContentType.ID
 			}).Do()
 			view := &View{
-				ViewID:        item.ID,
-				ContentTypeID: item.ContentType.ID,
-				Name:          item.Name,
-				Plural:        item.Name,
-				Path:          item.RoutePath,
-				Icon:          item.Icon,
-				ParentID:      item.ParentId,
-				Permission:    assesPermission,
-				ViewType:      item.ViewType,
-				Position:      item.PositionMenu,
+				ViewID:          item.ID,
+				ContentTypeID:   item.ContentType.ID,
+				ContentTypeName: item.ContentType.Table,
+				Name:            item.Name,
+				Plural:          item.Name,
+				Path:            item.RoutePath,
+				Icon:            item.Icon,
+				ParentID:        item.ParentId,
+				Permission:      assesPermission,
+				ViewType:        item.ViewType,
+				Position:        item.PositionMenu,
 			}
 			for _, _item := range views {
 				child := stream.Filter(func(v models.Views) bool { return v.ID == _item.ID }).Out().Val()
 				if len(child.([]models.Views)) > 0 {
 					_view := &View{
-						ViewID:        _item.ID,
-						ContentTypeID: item.ContentType.ID,
-						Name:          _item.Name,
-						Plural:        _item.Name,
-						Path:          _item.RoutePath,
-						Icon:          _item.Icon,
-						ParentID:      _item.ParentId,
-						Permission:    assesPermission,
-						ViewType:      _item.ViewType,
-						Position:      _item.PositionMenu,
+						ViewID:          _item.ID,
+						ContentTypeID:   item.ContentType.ID,
+						ContentTypeName: item.ContentType.Table,
+						Name:            _item.Name,
+						Plural:          _item.Name,
+						Path:            _item.RoutePath,
+						Icon:            _item.Icon,
+						ParentID:        _item.ParentId,
+						Permission:      assesPermission,
+						ViewType:        _item.ViewType,
+						Position:        _item.PositionMenu,
 					}
 					view.AddChild(_view)
 				}
@@ -123,7 +126,7 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 	} else {
 		var roles []models.Role
 		db.Preload(
-			"Permissions.View",
+			"Permissions.View.ContentType",
 		).Preload(
 			"Permissions.View.Children",
 		).Joins(
@@ -134,15 +137,16 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 			for _, permission := range role.Permissions {
 				stream := koazee.StreamOf(permission.View.Children)
 				view := &View{
-					ViewID:        permission.ViewId,
-					Path:          permission.View.RoutePath,
-					ContentTypeID: permission.View.ContentTypeId,
-					Name:          permission.View.Name,
-					Icon:          permission.View.Icon,
-					ParentID:      permission.View.ParentId,
-					ViewType:      permission.View.ViewType,
-					Menu:          permission.View.PositionMenu > 0,
-					Position:      permission.View.PositionMenu,
+					ViewID:          permission.ViewId,
+					Path:            permission.View.RoutePath,
+					ContentTypeID:   permission.View.ContentTypeId,
+					ContentTypeName: permission.View.ContentType.Table,
+					Name:            permission.View.Name,
+					Icon:            permission.View.Icon,
+					ParentID:        permission.View.ParentId,
+					ViewType:        permission.View.ViewType,
+					Menu:            permission.View.PositionMenu > 0,
+					Position:        permission.View.PositionMenu,
 					Permission: Permission{
 						Name:   permission.GetPermissionName(),
 						Access: permission.Access,
@@ -152,15 +156,16 @@ func GetAvailableViews(w http.ResponseWriter, r *http.Request) {
 					child := stream.Filter(func(v models.Views) bool { return v.ID == _permission.ViewId }).Out().Val()
 					if len(child.([]models.Views)) > 0 {
 						_view := &View{
-							ViewID:        _permission.ViewId,
-							Path:          _permission.View.RoutePath,
-							ContentTypeID: _permission.View.ContentTypeId,
-							Name:          _permission.View.Name,
-							Icon:          _permission.View.Icon,
-							ParentID:      _permission.View.ParentId,
-							ViewType:      _permission.View.ViewType,
-							Menu:          _permission.View.PositionMenu > 0,
-							Position:      _permission.View.PositionMenu,
+							ViewID:          _permission.ViewId,
+							Path:            _permission.View.RoutePath,
+							ContentTypeID:   _permission.View.ContentTypeId,
+							ContentTypeName: _permission.View.ContentType.Table,
+							Name:            _permission.View.Name,
+							Icon:            _permission.View.Icon,
+							ParentID:        _permission.View.ParentId,
+							ViewType:        _permission.View.ViewType,
+							Menu:            _permission.View.PositionMenu > 0,
+							Position:        _permission.View.PositionMenu,
 							Permission: Permission{
 								Name:   _permission.GetPermissionName(),
 								Access: _permission.Access,

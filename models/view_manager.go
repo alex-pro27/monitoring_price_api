@@ -12,12 +12,12 @@ type ViewManager struct {
 }
 
 func (manager *ViewManager) Create(fields types.H) (err error) {
-	if err = helpers.SetFieldsForModel(manager.self, fields); err != nil {
-		return err
-	}
 	viewType := fields["view_type"]
 	if viewType != nil {
 		manager.self.ViewType = ViewType(viewType.(float64))
+	}
+	if err = helpers.SetFieldsForModel(manager.self, fields); err != nil {
+		return err
 	}
 	manager.DB.Create(manager.self)
 	manager.NewRecord(manager.self)
@@ -26,12 +26,12 @@ func (manager *ViewManager) Create(fields types.H) (err error) {
 }
 
 func (manager *ViewManager) Update(fields types.H) (err error) {
-	if err = helpers.SetFieldsForModel(manager.self, fields); err != nil {
-		return err
-	}
 	viewType := fields["view_type"]
 	if viewType != nil {
 		manager.self.ViewType = ViewType(viewType.(float64))
+	}
+	if err = helpers.SetFieldsForModel(manager.self, fields); err != nil {
+		return err
 	}
 	manager.Save(manager.self)
 	helpers.SetManyToMany(manager.DB, manager.self, fields)

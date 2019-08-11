@@ -15,7 +15,7 @@ const (
 
 type Views struct {
 	gorm.Model
-	Name          string      `gorm:"size:255" form:"label:Название;required"`
+	Name          string      `gorm:"size:255" form:"label:Название;"`
 	PositionMenu  uint        `gorm:"default:0" form:"label:Позиция в меню"`
 	Icon          string      `grom:"size:255" form:"label:Иконка"`
 	ViewType      ViewType    `gorm:"default:0" form:"label:Тип;choice:GetViewTypeChoices;required"`

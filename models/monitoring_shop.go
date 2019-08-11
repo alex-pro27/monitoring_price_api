@@ -28,13 +28,9 @@ type MonitoringShop struct {
 	*/
 	IsMustPhoto bool `form:"label:Обязательность фотографирования"`
 	/**
-	Группа мониторинга
+	Мониториги
 	*/
-	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;" form:"label:Рабочая группа"`
-	/**
-	Товары
-	*/
-	Wares []Ware `gorm:"many2many:monitoring_shops_wares;"form:"label:Товары;group_by:Segment"`
+	Monitorings []Monitoring `gorm:"many2many:monitoring_shops_monitorings;"form:"label:Мониториги(По типам);group_by:MonitoringType"`
 
 	Active bool `gorm:"default:true" form:"label:Активный;type:switch"`
 }
@@ -64,7 +60,6 @@ func (MonitoringShop) Admin() types.AdminMeta {
 			{Name: "Name"},
 			{Name: "Address"},
 		},
-		Preload: []string{"Wares.Segment"},
 	}
 }
 

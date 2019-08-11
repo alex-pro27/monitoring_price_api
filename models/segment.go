@@ -49,5 +49,5 @@ func (Segment) Meta() types.ModelsMeta {
 }
 
 func (segment Segment) String() string {
-	return segment.Name
+	return segment.Code + " " + segment.Name
 }

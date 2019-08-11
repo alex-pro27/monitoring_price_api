@@ -4,28 +4,17 @@ import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
-	"strings"
 )
 
 type Ware struct {
 	gorm.Model
-	Name           		string  				`gorm:"size:255" form:"label:Название товара;required"`
-	Code           		string  				`gorm:"size:255" form:"label: Локальный код товара;required"`
-	Barcode        		string  				`gorm:"size:255" form:"label: ШК товара;"`
-	Description    		string  				`form:"label:Описание"`
-	Segment        		Segment 				`form:"label:Сегмент"`
-	SegmentId      		uint
-	Active         		bool             		`gorm:"default:true" form:"label:Активный;type:switch"`
-	MonitoringType 		[]MonitoringType 		`gorm:"many2many:wares_monitoring_types" form:"label:Тип мониторинга"`
-	MonitoringShops 	[]MonitoringShop 		`gorm:"many2many:monitoring_shops_wares" form:"label:Магазины для мониторинга"`
-}
-
-func (ware Ware) GetMonitoringType() string {
-	var names []string
-	for _, mt := range ware.MonitoringType {
-		names = append(names, mt.Name)
-	}
-	return strings.Join(names, ", ")
+	Name        string  `gorm:"size:255" form:"label:Название товара;required"`
+	Code        string  `gorm:"size:255" form:"label: Локальный код товара;required"`
+	Barcode     string  `gorm:"size:255" form:"label: ШК товара;"`
+	Description string  `form:"label:Описание"`
+	Segment     Segment `form:"label:Сегмент"`
+	SegmentId   uint
+	Monitorings []Monitoring `gorm:"many2many:monitorings_wares" form:"label:Мониторинги(по типам);group_by:MonitoringType"`
 }
 
 func (ware Ware) GetSegmentName() string {
@@ -38,7 +27,6 @@ func (ware Ware) Serializer() types.H {
 		"name":        ware.Name,
 		"code":        ware.Code,
 		"description": ware.Description,
-		"active":      ware.Active,
 	}
 }
 
@@ -52,23 +40,18 @@ func (Ware) Meta() types.ModelsMeta {
 func (Ware) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		ExcludeFields: []string{"SegmentId"},
-		SearchFields:  []string{"Name", "Barcode"},
-		Preload:       []string{"Segment", "MonitoringType"},
+		SearchFields:  []string{"Name", "Barcode", "Code"},
+		Preload:       []string{"Segment"},
 		OrderBy:       []string{"SegmentId", "Name"},
 		SortFields: []types.AdminMetaField{
-			{Name: "UpdatedAt", ToHTML: "datetime", Label: "Дата обновления"},
+			{Name: "Code"},
 			{Name: "Name"},
 			{Name: "Barcode"},
-			{Name: "Active"},
 		},
 		ExtraFields: []types.AdminMetaField{
 			{
 				Name:  "GetSegmentName",
 				Label: "Сегмент",
-			},
-			{
-				Name:  "GetMonitoringType",
-				Label: "Типы мониторинга",
 			},
 		},
 		FilterFields: []types.AdminMetaField{
