@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 var DefaultUpgrader = websocket.Upgrader{
@@ -31,12 +32,15 @@ type WebSocket struct {
 	clients            []*websocket.Conn
 	messageHandlers    *MessageHandlers
 	objMessageHandlers reflect.Value
+	mutex              *sync.Mutex
 }
 
 func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 	client, err := ws.upgrader.Upgrade(w, r, nil)
+	ws.mutex.Lock()
 	clientID := ws.addClient(client)
+	ws.mutex.Unlock()
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
@@ -104,9 +108,11 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		logger.HandleError(client.Close())
 		(*ws.messageHandlers).OnClose(clientID)
+		ws.mutex.Lock()
 		ws.removeClient(clientID)
+		ws.mutex.Unlock()
+		logger.HandleError(client.Close())
 	}()
 }
 
@@ -125,17 +131,30 @@ func (ws WebSocket) Emit(clientID int, event string, data types.H) {
 	}
 }
 
-func (ws *WebSocket) SetUpgrader(upgrader websocket.Upgrader) {
-	ws.upgrader = upgrader
-}
-
 func (ws *WebSocket) addClient(client *websocket.Conn) int {
-	ws.clients = append(ws.clients, client)
-	return len(ws.clients) - 1
+	clientID := -1
+	flagIsSetLast := false
+	for i := len(ws.clients) - 1; i >= 0; i-- {
+		if ws.clients[i] != nil {
+			flagIsSetLast = true
+			clientID = i - 1
+		} else if !flagIsSetLast {
+			ws.clients = append(ws.clients[:i], ws.clients[i+1:]...)
+		} else {
+			break
+		}
+	}
+	if clientID == -1 {
+		ws.clients = append(ws.clients, client)
+		clientID = len(ws.clients) - 1
+	} else {
+		ws.clients[clientID] = client
+	}
+	return clientID
 }
 
 func (ws *WebSocket) removeClient(clientID int) {
-	ws.clients = append(ws.clients[:clientID], ws.clients[clientID+1:]...)
+	ws.clients[clientID] = nil
 }
 
 func (ws *WebSocket) Clients() []*websocket.Conn {
@@ -149,7 +168,10 @@ func (ws *WebSocket) Client(clientID int) *websocket.Conn {
 	return nil
 }
 
-func (ws *WebSocket) SetEventHandlers(h MessageHandlers) {
+func (ws *WebSocket) Init(h MessageHandlers, upgrader websocket.Upgrader) {
+	ws.clients = make([]*websocket.Conn, 0)
+	ws.upgrader = upgrader
 	ws.messageHandlers = &h
+	ws.mutex = new(sync.Mutex)
 	ws.objMessageHandlers = reflect.ValueOf(h)
 }

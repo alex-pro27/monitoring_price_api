@@ -8,6 +8,7 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
+	"github.com/wesovilabs/koazee"
 	"net/http"
 )
 
@@ -21,8 +22,7 @@ type AdminWebSocketHandler struct {
 
 func (h *AdminWebSocketHandler) Init(server *common.WebSocket) {
 	h.Server = server
-	h.Server.SetUpgrader(common.DefaultUpgrader)
-	h.Server.SetEventHandlers(h)
+	h.Server.Init(h, common.DefaultUpgrader)
 	h.Users = make(map[string][]int)
 	h.IsInit = true
 	h.Decorators = []func(handleFunc common.WSHandleFunc) common.WSHandleFunc{
@@ -53,7 +53,7 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket) {
 					user.Manager(h.db).GetUserByToken(message["token"].(string))
 				}
 				if !user.IsStaff {
-					h.Server.Emit(clientID, "on_connect", types.H{
+					h.Server.Emit(clientID, "connect", types.H{
 						"error":   true,
 						"code":    403,
 						"message": "Permission denied",
@@ -69,6 +69,7 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket) {
 					h.Users[user.Token.Key] = make([]int, 0)
 				}
 				h.Users[user.Token.Key] = append(h.Users[user.Token.Key], clientID)
+				h.Users[user.Token.Key] = koazee.StreamOf(h.Users[user.Token.Key]).RemoveDuplicates().Out().Val().([]int)
 				f(clientID, message, user)
 			}
 		},
@@ -84,11 +85,11 @@ func (h AdminWebSocketHandler) Emit(token, event string, message types.H) {
 	}
 }
 
-func (h AdminWebSocketHandler) EmitAll(excludeClientID int, event string, message types.H) {
+func (h AdminWebSocketHandler) EmitAll(excludeToken, event string, message types.H) {
 	if h.IsInit {
-		for _, clientIDX := range h.Users {
-			for _, clientID := range clientIDX {
-				if excludeClientID != clientID {
+		for token, clientIDX := range h.Users {
+			if token != excludeToken {
+				for _, clientID := range clientIDX {
 					h.Server.Emit(clientID, event, message)
 				}
 			}
@@ -97,7 +98,7 @@ func (h AdminWebSocketHandler) EmitAll(excludeClientID int, event string, messag
 }
 
 func (h *AdminWebSocketHandler) OnOpen(clientID int) {
-	h.Server.Emit(clientID, "on_open", types.H{
+	h.Server.Emit(clientID, "onopen", types.H{
 		"message": fmt.Sprintf("client on connected %d", clientID),
 	})
 }
@@ -124,7 +125,7 @@ func (h *AdminWebSocketHandler) OnClose(clientID int) {
 		user.Online = false
 		db.Save(user)
 		logger.HandleError(h.db.Close())
-		h.EmitAll(-1, "client_leaved", map[string]interface{}{
+		h.EmitAll(token, "client_leaved", map[string]interface{}{
 			"client_name": user.GetFullName(),
 		})
 	}
@@ -134,14 +135,19 @@ func (h *AdminWebSocketHandler) OnConnect(clientID int, message types.H, args ..
 	user := args[0].(*models.User)
 	user.Online = true
 	h.db.Save(user)
-	h.Server.Emit(clientID, "on_connect", types.H{
+	h.Server.Emit(clientID, "connect", types.H{
 		"message": "Connected!",
 	})
 	if len(h.Users[user.Token.Key]) == 1 {
-		h.EmitAll(clientID, "client_joined", map[string]interface{}{
+		h.EmitAll(user.Token.Key, "client_joined", map[string]interface{}{
 			"client_name": user.GetFullName(),
 		})
 	}
+}
+
+func (h *AdminWebSocketHandler) OnLogout(clientID int, message types.H, args ...interface{}) {
+	user := args[0].(*models.User)
+	h.Emit(user.Token.Key, "logout", nil)
 }
 
 var AdminWebSocket = new(AdminWebSocketHandler)
