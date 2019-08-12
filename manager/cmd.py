@@ -57,6 +57,9 @@ class Commands(object):
         email = conf["admin"]["EMAIL"]
         print("Input login from {}:".format(admin))
         login = input()
+        if not login:
+            print("Login cannot be empty:".format(admin))
+            return
         password = getpass.getpass("Input password:").encode("ascii")
         confirm_password = getpass.getpass("Confirm password:").encode("ascii")
 

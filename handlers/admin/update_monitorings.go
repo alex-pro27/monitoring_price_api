@@ -216,12 +216,8 @@ func taskUpdateMonitoring(args interface{}) {
 	wareCodes = koazee.StreamOf(wareCodes).RemoveDuplicates().Out().Val().([]string)
 	wareNames = koazee.StreamOf(wareNames).RemoveDuplicates().Out().Val().([]string)
 
-	__monitoringTypes := make([]models.MonitoringType, 0)
-	tx.Find(&__monitoringTypes, "name IN (?)", monitoringTypeNames)
-	monitoringTypes := make(map[uint]*models.MonitoringType)
-	for _, mt := range __monitoringTypes {
-		monitoringTypes[mt.ID] = &mt
-	}
+	monitoringTypes := make([]models.MonitoringType, 0)
+	tx.Find(&monitoringTypes, "name IN (?)", monitoringTypeNames)
 
 	__wares := make([]models.Ware, 0)
 	tx.Find(&__wares, "code IN (?)", wareCodes)
@@ -267,7 +263,7 @@ func taskUpdateMonitoring(args interface{}) {
 			}
 		}
 
-		for _, mt := range __monitoringTypes {
+		for _, mt := range monitoringTypes {
 			for _, mt_name := range _ware["monitoring_types"].([]string) {
 				if mt_name == mt.Name {
 					if waresByMonitoringTypes[mt.ID] == nil {
@@ -280,10 +276,10 @@ func taskUpdateMonitoring(args interface{}) {
 	}
 
 	var monitorings []models.Monitoring
-	tx.Preload("Wares").Select("DISTINCT monitorings.*").Joins(
+	tx.Preload(
+		"Wares",
+	).Select("DISTINCT monitorings.*").Joins(
 		"INNER JOIN monitoring_types mt ON mt.id = monitoring_type_id",
-	).Joins(
-		"INNER JOIN monitoring_shops_monitorings msm ON msm.monitoring_id = monitorings.id",
 	).Joins(
 		"INNER JOIN work_groups_monitorings wgm ON wgm.monitoring_id = monitorings.id",
 	).Find(&monitorings, "mt.name IN (?) AND wgm.work_group_id IN (?)", monitoringTypeNames, userWorkGroupIDX)

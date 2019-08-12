@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"github.com/wesovilabs/koazee"
 	"net/http"
 	"strings"
 )
@@ -34,60 +35,43 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 		Description    string `json:"description"`
 		Barcode        string `json:"barcode"`
 		TypeMonitoring uint   `json:"type_monitoring"`
-		Mg2            uint   `json:"-"` // Фильтр по группам мониторинга
-		Wg2            uint   `json:"-"` // Фильтр по рабочим группам
 	}
+
+	var monitorings []models.Monitoring
+	db.Select(
+		"DISTINCT monitorings.*",
+	).Joins(
+		"INNER JOIN monitoring_types mt ON mt.id = monitoring_type_id",
+	).Joins(
+		"INNER JOIN work_groups_monitorings wgm ON wgm.monitoring_id = monitorings.id",
+	).Joins(
+		"INNER JOIN work_groups wg ON wg.id = wgm.work_group_id",
+	).Joins(
+		"INNER JOIN monitoring_groups mg ON mg.id = monitorings.monitoring_group_id",
+	).Joins(
+		"INNER JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
+	).Where(
+		"monitorings.active = true AND mtp.period_id IN (?) AND wg.name ilike ? AND mg.name ilike ?",
+		periodsIDX,
+		vars["shop"],
+		vars["region"],
+	).Find(&monitorings)
+	monitoringIDX := koazee.StreamOf(monitorings).Map(func(m models.Monitoring) uint { return m.ID }).Out().Val()
 
 	var data []Ware
 
-	db.Model(
-		&models.Ware{},
-	).Select(
+	db.Model(new(models.Ware)).Select(
 		"DISTINCT "+
 			"wares.id, "+
 			"wares.code, "+
 			"wares.name, "+
 			"wares.barcode, "+
 			"wares.description, "+
-			"mt.id type_monitoring",
+			"m.monitoring_type_id type_monitoring",
 	).Joins(
-		"LEFT JOIN wares_monitoring_types wmt ON wmt.ware_id = wares.id",
+		"INNER JOIN monitorings_wares mw ON mw.ware_id = wares.id",
 	).Joins(
-		"LEFT JOIN monitoring_types mt ON wmt.monitoring_type_id = mt.id",
-	).Joins(
-		"LEFT JOIN monitoring_shops_wares msw ON msw.ware_id = wares.id",
-	).Joins(
-		"LEFT JOIN monitoring_shops ms ON ms.id = msw.monitoring_shop_id",
-	).Joins(
-		"LEFT JOIN work_groups_monitoring_shops wgms ON wgms.monitoring_shop_id = ms.id",
-	).Joins(
-		"LEFT JOIN work_groups wg ON wg.id = wgms.work_group_id",
-	).Joins(
-		"LEFT JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
-	).Joins(
-		"LEFT JOIN periods p ON p.id = mtp.period_id",
-	).Joins(
-		"LEFT JOIN work_groups_monitoring_groups wgmg ON wg.id = wgmg.work_group_id",
-	).Joins(
-		"LEFT JOIN monitoring_groups mg ON mg.id = wgmg.monitoring_groups_id",
-	).Where(
-		"wares.active = true "+
-			"AND (wg.name::text ~* ? AND mg.name::text ~* ? AND p.id IN (?))",
-		vars["shop"],
-		regions,
-		periodsIDX,
-	).Scan(&data)
-
-	data1 := make([]Ware, 0)
-	for _, it := range data {
-		if it.Wg2 > 0 {
-			data1 = append(data1, it)
-		} else if it.Mg2 > 0 {
-			data1 = append(data1, it)
-		}
-	}
-	if len(data1) > 0 {
-		data = data1
-	}
+		"INNER JOIN monitorings m ON m.id = mw.monitoring_id",
+	).Where("mw.monitoring_id IN (?)", monitoringIDX).Scan(&data)
 	common.JSONResponse(w, data)
 }

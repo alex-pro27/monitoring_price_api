@@ -8,13 +8,14 @@ import (
 
 type Monitoring struct {
 	gorm.Model
-	Name             string `gorm:"size:255" form:"label:Название;required"`
-	MonitoringTypeId uint
-	MonitoringType   MonitoringType   `form:"label:Тип мониторинга"`
-	Wares            []Ware           `gorm:"many2many:monitorings_wares" form:"label:Товары;group_by:Segment"`
-	MonitoringShops  []MonitoringShop `gorm:"many2many:monitoring_shops_monitorings" form:"label:Магазины для мониторинга"`
-	WorkGroups       []WorkGroup      `gorm:"many2many:work_groups_monitorings;" form:"label:Рабочие группы"`
-	Active           bool             `gorm:"default:true" form:"label:Активный;type:switch"`
+	Name              string `gorm:"size:255" form:"label:Название;required"`
+	MonitoringTypeId  uint
+	MonitoringType    MonitoringType `form:"label:Тип мониторинга"`
+	MonitoringGroupId uint
+	MonitoringGroup   MonitoringGroups `form:"label:Группа мониторига"`
+	Wares             []Ware           `gorm:"many2many:monitorings_wares" form:"label:Товары;group_by:Segment"`
+	WorkGroups        []WorkGroup      `gorm:"many2many:work_groups_monitorings;" form:"label:Рабочие группы(по группам мониторига);group_by:MonitoringGroups"`
+	Active            bool             `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (Monitoring) Meta() types.ModelsMeta {

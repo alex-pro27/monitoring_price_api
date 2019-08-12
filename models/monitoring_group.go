@@ -10,8 +10,9 @@ import (
 */
 type MonitoringGroups struct {
 	gorm.Model
-	Name       	string      `gorm:"size:255" form:"label:Название"`
-	WorkGroups 	[]WorkGroup `gorm:"many2many:work_groups_monitoring_groups;" form:"label:Рабочие группы"`
+	Name        string       `gorm:"size:255" form:"label:Название"`
+	WorkGroups  []WorkGroup  `gorm:"many2many:work_groups_monitoring_groups;" form:"label:Рабочие группы"`
+	Monitorings []Monitoring `gorm:"foreignkey:MonitoringGroupId" form:"label:Мониториги"`
 }
 
 func (region MonitoringGroups) Serializer() types.H {

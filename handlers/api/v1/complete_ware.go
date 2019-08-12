@@ -41,13 +41,7 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 		wareData := wareData.(map[string]interface{})
 		completeWare := models.CompletedWare{}
 		monitoringType := models.MonitoringType{}
-		tx.Select(
-			"DISTINCT monitoring_types.*",
-		).Joins(
-			"INNER JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = monitoring_types.id",
-		).Joins(
-			"INNER JOIN periods p ON mtp.period_id = p.id",
-		).First(&monitoringType, "p.id = ?", wareData["period"])
+		tx.First(&monitoringType, "id = ?", wareData["period"])
 
 		tx.FirstOrCreate(
 			&completeWare,
