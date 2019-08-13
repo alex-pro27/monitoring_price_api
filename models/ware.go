@@ -14,7 +14,6 @@ type Ware struct {
 	Description string  `form:"label:Описание"`
 	Segment     Segment `form:"label:Сегмент"`
 	SegmentId   uint
-	Monitorings []Monitoring `gorm:"many2many:monitorings_wares" form:"label:Мониторинги(по типам);group_by:MonitoringType"`
 }
 
 func (ware Ware) GetSegmentName() string {

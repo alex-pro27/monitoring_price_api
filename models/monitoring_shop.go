@@ -28,9 +28,13 @@ type MonitoringShop struct {
 	*/
 	IsMustPhoto bool `form:"label:Обязательность фотографирования"`
 	/**
-	Рабочая группа
+	Мониториги
 	*/
-	WorkGroups []WorkGroup `gorm:"many2many:work_groups_monitoring_shops" form:"label:Рабочая группа;group_by:MonitoringGroups"`
+	Monitorings []Monitoring `gorm:"many2many:monitorings_monitoring_shops" form:"label:Мониторинги;group_by:MonitoringGroups"`
+	/**
+	Товары для мониторига
+	*/
+	Wares []Ware `gorm:"many2many:monitoring_shops_wares" form:"label:Товары;group_by:Segment"`
 
 	Active bool `gorm:"default:true" form:"label:Активный;type:switch"`
 }

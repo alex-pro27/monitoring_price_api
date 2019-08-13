@@ -1,21 +1,32 @@
 package models
 
 import (
-	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
 )
 
 type Monitoring struct {
 	gorm.Model
-	Name              string `gorm:"size:255" form:"label:Название;required"`
-	MonitoringTypeId  uint
-	MonitoringType    MonitoringType `form:"label:Тип мониторинга"`
-	MonitoringGroupId uint
-	MonitoringGroup   MonitoringGroups `form:"label:Группа мониторига"`
-	Wares             []Ware           `gorm:"many2many:monitorings_wares" form:"label:Товары;group_by:Segment"`
-	WorkGroups        []WorkGroup      `gorm:"many2many:work_groups_monitorings;" form:"label:Рабочие группы(по группам мониторига);group_by:MonitoringGroups"`
-	Active            bool             `gorm:"default:true" form:"label:Активный;type:switch"`
+	Name             string `gorm:"size:255;not null" form:"label:Название;required"`
+	MonitoringTypeId uint
+	MonitoringType   MonitoringType     `form:"label:Тип мониторинга"`
+	MonitoringGroups []MonitoringGroups `gorm:"many2many:monitoring_groups_monitorings;" form:"label: Группы мониторинга"`
+	MonitoringShops  []MonitoringShop   `gorm:"many2many:monitorings_monitoring_shops" form:"label:Магазины для мониторинга"`
+	Users            []User             `gorm:"many2many:monitorings_users;" form:"label:Пользователи"`
+	Active           bool               `gorm:"default:true" form:"label:Активная;type:switch"`
+}
+
+func (monitoring Monitoring) Serializer() types.H {
+	var monitoringGroups []types.H
+	for _, region := range monitoring.MonitoringGroups {
+		monitoringGroups = append(monitoringGroups, region.Serializer())
+	}
+	return types.H{
+		"id":                monitoring.ID,
+		"name":              monitoring.Name,
+		"monitoring_groups": monitoringGroups,
+		"active":            monitoring.Active,
+	}
 }
 
 func (Monitoring) Meta() types.ModelsMeta {
@@ -27,16 +38,14 @@ func (Monitoring) Meta() types.ModelsMeta {
 
 func (Monitoring) Admin() types.AdminMeta {
 	return types.AdminMeta{
+		SearchFields: []string{"Name"},
 		SortFields: []types.AdminMetaField{
-			{Name: "ID", Label: "Код"},
 			{Name: "Name"},
-			{Name: "UpdatedAt", ToHTML: "datetime", Label: "Дата обновления"},
 			{Name: "Active"},
 		},
-		OrderBy: []string{"-UpdatedAt"},
 	}
 }
 
 func (monitoring Monitoring) String() string {
-	return fmt.Sprintf("%d %s", monitoring.ID, monitoring.Name)
+	return monitoring.Name
 }

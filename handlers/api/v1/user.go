@@ -30,15 +30,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		common.Error404(w, r)
 		return
 	}
-	var region, shopName, roleName string
-	if len(user.WorkGroup) > 0 {
-		shopName = user.WorkGroup[0].Name
-		if len(user.WorkGroup[0].MonitoringGroups) > 0 {
-			region = user.WorkGroup[0].MonitoringGroups[0].Name
-		} else {
-			region = "None"
-		}
-	}
+	var roleName string
+
 	if len(user.Roles) > 0 {
 		roleName = user.Roles[0].Name
 	}
@@ -48,8 +41,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		"username": user.UserName,
 		"name":     user.GetFullName(),
 		"email":    user.Email,
-		"region":   region,
-		"shop":     shopName,
 		"barcode":  user.UserName,
 		"type":     roleName,
 		"token":    user.Token.Key,

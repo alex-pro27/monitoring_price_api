@@ -12,18 +12,18 @@ import (
 
 type User struct {
 	gorm.Model
-	FirstName   string      `gorm:"size:255;not null" form:"required;label:Имя"`
-	LastName    string      `gorm:"size:255;" form:"required;label:Фамилия"`
-	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;label:Login"`
-	Password    string      `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
-	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
-	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
-	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
-	WorkGroup   []WorkGroup `gorm:"many2many:users_work_groups;" form:"label:Рабочая группа(По группам мониторинга);group_by:MonitoringGroups"`
-	Online      bool        `gorm:"default:false" form:"disabled"`
-	Active      bool        `gorm:"default:true" form:"type:switch;label:Активировать"`
-	IsSuperUser bool        `gorm:"default:false"`
-	IsStaff     bool        `gorm:"default:false" form:"label:Сотрудник"`
+	FirstName   string       `gorm:"size:255;not null" form:"required;label:Имя"`
+	LastName    string       `gorm:"size:255;" form:"required;label:Фамилия"`
+	UserName    string       `gorm:"size:255;unique_index;not null" form:"required;label:Login"`
+	Password    string       `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
+	Email       string       `gorm:"type:varchar(100);unique_index;not null" form:"required"`
+	Phone       string       `gorm:"type:varchar(17);" form:"label:Телефон"`
+	Roles       []Role       `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
+	Monitorings []Monitoring `gorm:"many2many:monitorings_users;" form:"label:Мониторинги(По группам мониторинга);group_by:MonitoringGroups"`
+	Online      bool         `gorm:"default:false" form:"disabled"`
+	Active      bool         `gorm:"default:true" form:"type:switch;label:Активировать"`
+	IsSuperUser bool         `gorm:"default:false"`
+	IsStaff     bool         `gorm:"default:false" form:"label:Сотрудник"`
 	TokenId     uint
 	Token       Token
 }
@@ -32,10 +32,10 @@ func (user User) GetFullName() string {
 	return fmt.Sprintf("%s %s", user.LastName, user.FirstName)
 }
 
-func (user User) GetWorkGroups() string {
+func (user User) GetMonitorings() string {
 	names := make([]string, 0)
-	for _, wg := range user.WorkGroup {
-		names = append(names, wg.Name)
+	for _, m := range user.Monitorings {
+		names = append(names, m.Name)
 	}
 	return strings.Join(names, ", ")
 }
@@ -101,7 +101,7 @@ func (user User) Meta() types.ModelsMeta {
 
 func (user User) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		Preload:       []string{"WorkGroup"},
+		Preload:       []string{"Monitorings"},
 		ExcludeFields: []string{"TokenId", "IsSuperUser", "Token"},
 		OrderBy:       []string{"LastName", "FirstName"},
 		SearchFields:  []string{"LastName", "FirstName", "Email", "Phone"},
@@ -112,14 +112,14 @@ func (user User) Admin() types.AdminMeta {
 		},
 		ExtraFields: []types.AdminMetaField{
 			{
-				Name:  "GetWorkGroups",
+				Name:  "GetMonitorings",
 				Label: "Рабочая группа",
 			},
 		},
 		FilterFields: []types.AdminMetaField{
 			{
-				Name:  "WorkGroups.ID",
-				Label: "По рабочей группе",
+				Name:  "Monitorings.ID",
+				Label: "По мониторингам",
 			},
 		},
 	}
@@ -139,12 +139,12 @@ func (user *User) Manager(db *gorm.DB) *UserManager {
 
 func (user User) Serializer() types.H {
 	var roles []types.H
-	var workGroups []types.H
+	var monitorings []types.H
 	for _, role := range user.Roles {
 		roles = append(roles, role.Serializer())
 	}
-	for _, wg := range user.WorkGroup {
-		workGroups = append(workGroups, wg.Serializer())
+	for _, m := range user.Monitorings {
+		monitorings = append(monitorings, m.Serializer())
 	}
 	return types.H{
 		"id":            user.ID,
@@ -157,7 +157,7 @@ func (user User) Serializer() types.H {
 		"roles":         roles,
 		"phone":         user.Phone,
 		"active":        user.Active,
-		"work_groups":   workGroups,
+		"monitorings":   monitorings,
 		"is_super_user": user.IsSuperUser,
 		"is_staff":      user.IsStaff,
 	}

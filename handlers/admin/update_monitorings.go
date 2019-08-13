@@ -235,10 +235,10 @@ func taskUpdateMonitoring(args interface{}) {
 	}
 
 	waresByMonitoringTypes := make(map[uint][]models.Ware)
-	userWorkGroupIDX := make([]uint, 0)
+	userMonitoringIDX := make([]uint, 0)
 
-	for _, wg := range user.WorkGroup {
-		userWorkGroupIDX = append(userWorkGroupIDX, wg.ID)
+	for _, m := range user.Monitorings {
+		userMonitoringIDX = append(userMonitoringIDX, m.ID)
 	}
 
 	for _code, _ware := range _wares {
@@ -277,12 +277,10 @@ func taskUpdateMonitoring(args interface{}) {
 
 	var monitorings []models.Monitoring
 	tx.Preload(
-		"Wares",
+		"MonitoringShops.Wares",
 	).Select("DISTINCT monitorings.*").Joins(
 		"INNER JOIN monitoring_types mt ON mt.id = monitoring_type_id",
-	).Joins(
-		"INNER JOIN work_groups_monitorings wgm ON wgm.monitoring_id = monitorings.id",
-	).Find(&monitorings, "mt.name IN (?) AND wgm.work_group_id IN (?)", monitoringTypeNames, userWorkGroupIDX)
+	).Find(&monitorings, "mt.name IN (?) AND monitorings.id IN (?)", monitoringTypeNames, userMonitoringIDX)
 
 	for _, monitoring := range monitorings {
 		wares := waresByMonitoringTypes[monitoring.MonitoringTypeId]
@@ -290,11 +288,15 @@ func taskUpdateMonitoring(args interface{}) {
 			continue
 		}
 		if !isUpdate {
-			tx.Model(&monitoring).Association("Wares").Replace(wares)
+			for _, ms := range monitoring.MonitoringShops {
+				tx.Model(&ms).Association("Wares").Replace(wares)
+			}
 		} else {
-			monitoring.Wares = append(monitoring.Wares, wares...)
-			if err := tx.Save(&monitoring).Error; err != nil {
-				panic(fmt.Sprintf("Не удалось обновить мониторинг %s: %v", monitoring.Name, err))
+			for _, ms := range monitoring.MonitoringShops {
+				ms.Wares = append(ms.Wares, wares...)
+				if err := tx.Save(&ms).Error; err != nil {
+					panic(fmt.Sprintf("Не удалось обновить магазин для мониторига %s: %v", ms.Name, err))
+				}
 			}
 		}
 	}

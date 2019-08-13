@@ -74,7 +74,7 @@ func (manager *UserManager) GetById(id uint) *User {
 	manager.Preload(
 		"Token",
 	).Preload(
-		"WorkGroup.MonitoringGroups",
+		"Monitorings.MonitoringGroups",
 	).Preload(
 		"Roles",
 	).First(
@@ -89,7 +89,7 @@ func (manager *UserManager) GetByUserName(username string) *User {
 	).Preload(
 		"Roles",
 	).Preload(
-		"WorkGroup.MonitoringGroups",
+		"Monitorings.MonitoringGroups",
 	).First(
 		manager.self, "active = true AND user_name ilike ? OR email ilike ?", username, username,
 	)
@@ -99,7 +99,7 @@ func (manager *UserManager) GetByUserName(username string) *User {
 func (manager *UserManager) GetUserByToken(token string) *User {
 	manager.First(&manager.self.Token, "key = ?", token)
 	manager.Preload(
-		"WorkGroup.MonitoringGroups",
+		"Monitorings.MonitoringGroups",
 	).Find(
 		manager.self, "token_id = ?", manager.self.Token.ID,
 	)

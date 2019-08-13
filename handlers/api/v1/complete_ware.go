@@ -59,8 +59,8 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 		tx.Preload("Segment").First(&completeWare.Ware, "id = ?", wareData["id"])
 		tx.First(&completeWare.MonitoringShop, "id = ?", wareData["rival_id"])
 		region := models.MonitoringGroups{}
-		if len(user.WorkGroup) > 0 && len(user.WorkGroup[0].MonitoringGroups) > 0 {
-			region = user.WorkGroup[0].MonitoringGroups[0]
+		if len(user.Monitorings) > 0 && len(user.Monitorings[0].MonitoringGroups) > 0 {
+			region = user.Monitorings[0].MonitoringGroups[0]
 		}
 		completeWare.DateUpload = time.Now()
 		completeWare.User = *user

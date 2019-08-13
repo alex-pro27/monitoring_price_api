@@ -18,9 +18,9 @@ func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
 
 	var monitoringShops []models.MonitoringShop
 
-	var workGroupsIDX []uint
-	for _, wg := range user.WorkGroup {
-		workGroupsIDX = append(workGroupsIDX, wg.ID)
+	var monitoringIDX []uint
+	for _, m := range user.Monitorings {
+		monitoringIDX = append(monitoringIDX, m.ID)
 	}
 
 	db := context.Get(r, "DB").(*gorm.DB)
@@ -29,7 +29,7 @@ func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
 	).Joins(
 		"INNER JOIN work_groups_monitoring_shops wm ON wm.monitoring_shop_id = monitoring_shops.id",
 	).Find(
-		&monitoringShops, "wm.work_group_id IN (?)", workGroupsIDX,
+		&monitoringShops, "wm.work_group_id IN (?)", monitoringIDX,
 	)
 
 	var responseData []types.H
