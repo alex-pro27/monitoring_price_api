@@ -32,6 +32,10 @@ type MonitoringShop struct {
 	*/
 	Monitorings []Monitoring `gorm:"many2many:monitorings_monitoring_shops" form:"label:Мониторинги;group_by:MonitoringGroups"`
 	/**
+	Доступные сегменты
+	*/
+	Segments []Segment `gorm:"many2many:monitoring_shops_segments" form:"label:Доступные сегменты"`
+	/**
 	Товары для мониторига
 	*/
 	Wares []Ware `gorm:"many2many:monitoring_shops_wares" form:"label:Товары;group_by:Segment"`

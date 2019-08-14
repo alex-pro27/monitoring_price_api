@@ -91,6 +91,9 @@ func MigrateDefaultDB() {
 	db.Table("monitoring_shops_wares").AddForeignKey("ware_id", "wares(id)", "CASCADE", "CASCADE")
 	db.Table("monitoring_shops_wares").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
 
+	db.Table("monitoring_shops_segments").AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
+	db.Table("monitoring_shops_segments").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
+
 	for _, model := range DefaultModels {
 		tableName := db.NewScope(model).GetModelStruct().TableName(db)
 		db.FirstOrCreate(new(models.ContentType), models.ContentType{
