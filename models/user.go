@@ -23,7 +23,6 @@ type User struct {
 	Online      bool         `gorm:"default:false" form:"disabled"`
 	Active      bool         `gorm:"default:true" form:"type:switch;label:Активировать"`
 	IsSuperUser bool         `gorm:"default:false"`
-	IsStaff     bool         `gorm:"default:false" form:"label:Сотрудник"`
 	TokenId     uint
 	Token       Token
 }
@@ -113,7 +112,7 @@ func (user User) Admin() types.AdminMeta {
 		ExtraFields: []types.AdminMetaField{
 			{
 				Name:  "GetMonitorings",
-				Label: "Рабочая группа",
+				Label: "Мониторинги",
 			},
 		},
 		FilterFields: []types.AdminMetaField{
@@ -159,6 +158,5 @@ func (user User) Serializer() types.H {
 		"active":        user.Active,
 		"monitorings":   monitorings,
 		"is_super_user": user.IsSuperUser,
-		"is_staff":      user.IsStaff,
 	}
 }

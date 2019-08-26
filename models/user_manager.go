@@ -98,7 +98,7 @@ func (manager *UserManager) GetByUserName(username string) *User {
 
 func (manager *UserManager) GetUserByToken(token string) *User {
 	manager.First(&manager.self.Token, "key = ?", token)
-	manager.Preload(
+	manager.Preload("Roles").Preload(
 		"Monitorings.MonitoringGroups",
 	).Find(
 		manager.self, "token_id = ?", manager.self.Token.ID,

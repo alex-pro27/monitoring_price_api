@@ -556,9 +556,12 @@ func FilteredContentType(w http.ResponseWriter, r *http.Request) {
 				fmt.Print(elType.Name())
 				var groupStructField *gorm.StructField
 				for _, f := range modelStructFields {
-					if f.Name == elType.Name() {
-						groupStructField = f
-						break
+					if f.Relationship != nil && f.Relationship.Kind == "many_to_many" {
+						joinTableHandler := f.Relationship.JoinTableHandler.(*gorm.JoinTableHandler)
+						if joinTableHandler != nil && joinTableHandler.Destination.ModelType.Name() == elType.Name() {
+							groupStructField = f
+							break
+						}
 					}
 				}
 				if groupStructField != nil {

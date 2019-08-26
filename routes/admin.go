@@ -74,9 +74,14 @@ func RegisterAdminRoutes(r *mux.Router) {
 		},
 	}
 
-	waresRoutes := []Route{
+	monitorinRoutes := []Route{
 		{
-			Path:    "/update-wares",
+			Path:    "/monitorings",
+			Handler: admin.GetAllMonitoringList,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/update-monitorings",
 			Handler: admin.UpdateMonitorings,
 			Access:  models.WRITE,
 			Methods: []string{"POST"},
@@ -98,7 +103,7 @@ func RegisterAdminRoutes(r *mux.Router) {
 	}
 
 	RegisterRoutes(router, noCheckAuthRoutes, nil)
-	RegisterRoutes(authRouter, waresRoutes, models.Ware{})
 	RegisterRoutes(router, websockets, nil)
 	RegisterRoutes(authRouter, contentTypesRoutes, nil)
+	RegisterRoutes(authRouter, monitorinRoutes, models.Monitoring{})
 }

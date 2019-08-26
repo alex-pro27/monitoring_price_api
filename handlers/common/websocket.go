@@ -46,7 +46,6 @@ func (ws *WebSocket) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	(*ws.messageHandlers).OnOpen(clientID)
-
 	for {
 		mt, message, err := client.ReadMessage()
 		if err != nil {

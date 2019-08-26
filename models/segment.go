@@ -10,10 +10,11 @@ import (
 */
 type Segment struct {
 	gorm.Model
-	Name   string `gorm:"size:255" form:"label:Имя"`
-	Code   string `gorm:"size:255" form:"label:Код"`
-	Wares  []Ware `gorm:"foreignkey:SegmentId" form:"label:Товары"`
-	Active bool   `gorm:"default:true" form:"label:Активный;type:switch"`
+	Name            string           `gorm:"size:255" form:"label:Имя"`
+	Code            string           `gorm:"size:255" form:"label:Код"`
+	Wares           []Ware           `gorm:"foreignkey:SegmentId" form:"label:Товары"`
+	MonitoringShops []MonitoringShop `gorm:"many2many:monitoring_shops_segments" form:"label:Магазины для мониторинга(По мониторингам);group_by:Monitorings"`
+	Active          bool             `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (segment Segment) Serializer() types.H {

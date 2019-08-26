@@ -105,6 +105,15 @@ func UpdateMonitorings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isUpdate, _ := strconv.ParseBool(r.FormValue("is_update"))
+	monitoringIDX := koazee.StreamOf(strings.Split(r.FormValue("monitoring_idx"), ",")).Map(func(x string) uint {
+		res, _ := strconv.ParseUint(x, 10, 64)
+		return uint(res)
+	}).Out().Val().([]uint)
+
+	if len(monitoringIDX) == 0 {
+		common.ErrorResponse(w, r, "Не выбранны мониториги")
+		return
+	}
 	user := context.Get(r, "user").(*models.User)
 
 	buffer := new(bytes.Buffer)
@@ -122,7 +131,7 @@ func UpdateMonitorings(w http.ResponseWriter, r *http.Request) {
 	}
 	q := queue.NewQueue(taskUpdateMonitoring, 0)
 	q.Push([]interface{}{
-		xlFile, user, isUpdate,
+		xlFile, user, isUpdate, monitoringIDX,
 	})
 	common.JSONResponse(w, types.H{
 		"success": true,
@@ -134,6 +143,7 @@ func taskUpdateMonitoring(args interface{}) {
 	xlFile := _args[0].(*xlsx.File)
 	user := _args[1].(*models.User)
 	isUpdate := _args[2].(bool)
+	monitoringIDX := _args[3].([]uint)
 
 	db := databases.ConnectDefaultDB()
 	tx := db.Begin()
@@ -236,9 +246,30 @@ func taskUpdateMonitoring(args interface{}) {
 
 	waresByMonitoringTypes := make(map[uint][]models.Ware)
 	userMonitoringIDX := make([]uint, 0)
+	isAdmin := false
 
-	for _, m := range user.Monitorings {
-		userMonitoringIDX = append(userMonitoringIDX, m.ID)
+	for _, r := range user.Roles {
+		if r.RoleType == models.IS_ADMIN {
+			isAdmin = true
+			break
+		}
+	}
+
+	allMonitorings := make([]models.Monitoring, 0)
+
+	if isAdmin {
+		tx = tx.Find(&allMonitorings)
+	} else {
+		allMonitorings = user.Monitorings
+	}
+
+	for _, m := range allMonitorings {
+		for i, mID := range monitoringIDX {
+			if mID == m.ID {
+				userMonitoringIDX = append(userMonitoringIDX, m.ID)
+				monitoringIDX = append(monitoringIDX[:i], monitoringIDX[i+1:]...)
+			}
+		}
 	}
 
 	for _code, _ware := range _wares {

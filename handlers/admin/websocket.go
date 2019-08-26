@@ -32,7 +32,7 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket) {
 				if rec := recover(); rec != nil {
 					logger.Logger.Errorf("websocket error: %v", rec)
 				}
-				logger.Logger.Infof("websocket: client send message")
+				logger.Logger.Info("websocket: client send message")
 				f(clientID, message)
 			}
 		},
@@ -52,7 +52,10 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket) {
 				if token != nil {
 					user.Manager(h.db).GetUserByToken(message["token"].(string))
 				}
-				if !user.IsStaff {
+				userRoleTypes := koazee.StreamOf(user.Roles).Filter(func(x models.Role) bool {
+					return x.RoleType == models.IS_MANAGER || x.RoleType == models.IS_ADMIN
+				}).Out().Val().([]models.Role)
+				if len(userRoleTypes) == 0 {
 					h.Server.Emit(clientID, "connect", types.H{
 						"error":   true,
 						"code":    403,
