@@ -260,7 +260,12 @@ func taskUpdateMonitoring(args interface{}) {
 	if isAdmin {
 		tx = tx.Find(&allMonitorings)
 	} else {
-		allMonitorings = user.Monitorings
+		for _, wg := range user.WorkGroups {
+			for _, m := range wg.Monitorings {
+				allMonitorings = append(allMonitorings, m)
+			}
+		}
+		allMonitorings = koazee.StreamOf(allMonitorings).RemoveDuplicates().Out().Val().([]models.Monitoring)
 	}
 
 	for _, m := range allMonitorings {
@@ -307,7 +312,7 @@ func taskUpdateMonitoring(args interface{}) {
 	}
 
 	var monitorings []models.Monitoring
-	tx.Preload("MonitoringShops.Segments").Preload("MonitoringShops.Wares").Select("DISTINCT monitorings.*").Joins(
+	tx.Preload("Wares").Select("DISTINCT monitorings.*").Joins(
 		"INNER JOIN monitoring_types mt ON mt.id = monitoring_type_id",
 	).Find(&monitorings, "mt.name IN (?) AND monitorings.id IN (?)", monitoringTypeNames, userMonitoringIDX)
 
@@ -316,23 +321,12 @@ func taskUpdateMonitoring(args interface{}) {
 		if wares == nil {
 			continue
 		}
-		for _, ms := range monitoring.MonitoringShops {
-			filteredWares := make([]models.Ware, 0)
-			segmentIDX := koazee.StreamOf(ms.Segments).Map(func(s models.Segment) uint { return s.ID })
-			for _, ware := range wares {
-				if i, _ := segmentIDX.IndexOf(ware.SegmentId); i > -1 {
-					filteredWares = append(filteredWares, ware)
-				}
-			}
-			if len(filteredWares) > 0 {
-				if !isUpdate {
-					tx.Model(&ms).Association("Wares").Replace(filteredWares)
-				} else {
-					ms.Wares = append(ms.Wares, filteredWares...)
-					if err := tx.Save(&ms).Error; err != nil {
-						panic(fmt.Sprintf("Не удалось обновить магазин для мониторига %s: %v", ms.Name, err))
-					}
-				}
+		if !isUpdate {
+			tx.Model(&monitoring).Association("Wares").Replace(wares)
+		} else {
+			monitoring.Wares = append(monitoring.Wares, wares...)
+			if err := tx.Save(&monitoring).Error; err != nil {
+				panic(fmt.Sprintf("Не удалось обновить мониторинг %s: %v", monitoring.Name, err))
 			}
 		}
 	}

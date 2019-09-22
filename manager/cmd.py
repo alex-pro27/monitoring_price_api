@@ -83,9 +83,9 @@ class Commands(object):
             cursor.execute(
                 """
                 INSERT INTO users
-                (created_at, updated_at, first_name, last_name, user_name, password, email, token_id, is_super_user, is_staff)
+                (created_at, updated_at, first_name, last_name, user_name, password, email, token_id, is_super_user)
                 VALUES
-                (now(), now(), %s, %s, %s, %s, %s, %s, TRUE, TRUE)
+                (now(), now(), %s, %s, %s, %s, %s, %s, TRUE)
                 RETURNING id;
                 """,
                 (

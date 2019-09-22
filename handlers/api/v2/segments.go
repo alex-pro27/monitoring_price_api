@@ -17,8 +17,10 @@ func GetSegments(w http.ResponseWriter, r *http.Request) {
 	user := context.Get(r, "user").(*models.User)
 
 	var monitoringIDX []uint
-	for _, m := range user.Monitorings {
-		monitoringIDX = append(monitoringIDX, m.ID)
+	for _, wg := range user.WorkGroups {
+		for _, m := range wg.Monitorings {
+			monitoringIDX = append(monitoringIDX, m.ID)
+		}
 	}
 	var segments []models.Segment
 	db := context.Get(r, "DB").(*gorm.DB)

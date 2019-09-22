@@ -6,28 +6,28 @@ import (
 )
 
 /**
-Группы мониторинга
+Регион
 */
-type MonitoringGroups struct {
+type Region struct {
 	gorm.Model
 	Name        string       `gorm:"size:255" form:"label:Название"`
-	Monotorings []Monitoring `gorm:"many2many:monitoring_groups_monitorings;" form:"label:Мониториги"`
+	Monitorings []Monitoring `gorm:"many2many:regions_monitorings;" form:"label:Мониториги"`
 }
 
-func (region MonitoringGroups) Serializer() types.H {
+func (region Region) Serializer() types.H {
 	return types.H{
 		"id":   region.ID,
 		"name": region.Name,
 	}
 }
 
-func (MonitoringGroups) Meta() types.ModelsMeta {
+func (Region) Meta() types.ModelsMeta {
 	return types.ModelsMeta{
 		Name:   "Группа мониторинга",
 		Plural: "Группы мониторинга",
 	}
 }
 
-func (region MonitoringGroups) String() string {
+func (region Region) String() string {
 	return region.Name
 }

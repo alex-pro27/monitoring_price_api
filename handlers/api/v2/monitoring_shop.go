@@ -19,8 +19,10 @@ func GetMonitoringShops(w http.ResponseWriter, r *http.Request) {
 	var monitoringShops []models.MonitoringShop
 
 	var monitoringIDX []uint
-	for _, m := range user.Monitorings {
-		monitoringIDX = append(monitoringIDX, m.ID)
+	for _, wg := range user.WorkGroups {
+		for _, m := range wg.Monitorings {
+			monitoringIDX = append(monitoringIDX, m.ID)
+		}
 	}
 
 	db := context.Get(r, "DB").(*gorm.DB)

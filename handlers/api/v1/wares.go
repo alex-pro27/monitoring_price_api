@@ -27,7 +27,13 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 		TypeMonitoring uint   `json:"type_monitoring"`
 	}
 
-	monitoringIDX := koazee.StreamOf(user.Monitorings).Map(func(m models.Monitoring) uint { return m.ID }).Out().Val()
+	monitoringIDX := make([]uint, 0)
+	for _, wg := range user.WorkGroups {
+		for _, m := range wg.Monitorings {
+			monitoringIDX = append(monitoringIDX, m.ID)
+		}
+	}
+	monitoringIDX = koazee.StreamOf(monitoringIDX).RemoveDuplicates().Out().Val().([]uint)
 	var data []Ware
 	db.Model(new(models.Ware)).Select(
 		"DISTINCT "+
@@ -38,11 +44,9 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 			"wares.description, "+
 			"m.monitoring_type_id type_monitoring",
 	).Joins(
-		"INNER JOIN monitoring_shops_wares msw ON msw.ware_id = wares.id",
+		"INNER JOIN monitorings_wares mw ON mw.ware_id = wares.id",
 	).Joins(
-		"INNER JOIN monitorings_monitoring_shops mms ON mms.monitoring_shop_id = msw.monitoring_shop_id",
-	).Joins(
-		"INNER JOIN monitorings m ON m.id = mms.monitoring_id",
-	).Where("mms.monitoring_id IN (?)", monitoringIDX).Scan(&data)
+		"INNER JOIN monitorings m ON m.id = mw.monitoring_id",
+	).Where("mw.monitoring_id IN (?)", monitoringIDX).Scan(&data)
 	common.JSONResponse(w, data)
 }

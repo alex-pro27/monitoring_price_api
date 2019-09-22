@@ -30,15 +30,11 @@ type MonitoringShop struct {
 	/**
 	Мониториги
 	*/
-	Monitorings []Monitoring `gorm:"many2many:monitorings_monitoring_shops" form:"label:Мониторинги;group_by:MonitoringGroups"`
+	WorkGroups []WorkGroup `gorm:"many2many:work_groups_monitoring_shops" form:"label:Рабочие группы"`
 	/**
 	Доступные сегменты
 	*/
 	Segments []Segment `gorm:"many2many:monitoring_shops_segments" form:"label:Доступные сегменты"`
-	/**
-	Товары для мониторига
-	*/
-	Wares []Ware `gorm:"many2many:monitoring_shops_wares" form:"label:Товары;group_by:Segment"`
 
 	Active bool `gorm:"default:true" form:"label:Активный;type:switch"`
 }

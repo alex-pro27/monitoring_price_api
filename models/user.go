@@ -12,17 +12,17 @@ import (
 
 type User struct {
 	gorm.Model
-	FirstName   string       `gorm:"size:255;not null" form:"required;label:Имя"`
-	LastName    string       `gorm:"size:255;" form:"required;label:Фамилия"`
-	UserName    string       `gorm:"size:255;unique_index;not null" form:"required;label:Login"`
-	Password    string       `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
-	Email       string       `gorm:"type:varchar(100);unique_index;not null" form:"required"`
-	Phone       string       `gorm:"type:varchar(17);" form:"label:Телефон"`
-	Roles       []Role       `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
-	Monitorings []Monitoring `gorm:"many2many:monitorings_users;" form:"label:Мониторинги(По группам мониторинга);group_by:MonitoringGroups"`
-	Online      bool         `gorm:"default:false" form:"disabled"`
-	Active      bool         `gorm:"default:true" form:"type:switch;label:Активировать"`
-	IsSuperUser bool         `gorm:"default:false"`
+	FirstName   string      `gorm:"size:255;not null" form:"required;label:Имя"`
+	LastName    string      `gorm:"size:255;" form:"required;label:Фамилия"`
+	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;label:Login"`
+	Password    string      `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
+	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
+	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
+	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
+	WorkGroups  []WorkGroup `gorm:"many2many:work_groups_users;" form:"label:Рабочие группы"`
+	Online      bool        `gorm:"default:false" form:"disabled"`
+	Active      bool        `gorm:"default:true" form:"type:switch;label:Активировать"`
+	IsSuperUser bool        `gorm:"default:false"`
 	TokenId     uint
 	Token       Token
 }
@@ -31,9 +31,9 @@ func (user User) GetFullName() string {
 	return fmt.Sprintf("%s %s", user.LastName, user.FirstName)
 }
 
-func (user User) GetMonitorings() string {
+func (user User) GetWorkGroups() string {
 	names := make([]string, 0)
-	for _, m := range user.Monitorings {
+	for _, m := range user.WorkGroups {
 		names = append(names, m.Name)
 	}
 	return strings.Join(names, ", ")
@@ -100,7 +100,7 @@ func (user User) Meta() types.ModelsMeta {
 
 func (user User) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		Preload:       []string{"Monitorings"},
+		Preload:       []string{"WorkGroups.Monitorings"},
 		ExcludeFields: []string{"TokenId", "IsSuperUser", "Token"},
 		OrderBy:       []string{"LastName", "FirstName"},
 		SearchFields:  []string{"LastName", "FirstName", "Email", "Phone"},
@@ -111,14 +111,8 @@ func (user User) Admin() types.AdminMeta {
 		},
 		ExtraFields: []types.AdminMetaField{
 			{
-				Name:  "GetMonitorings",
-				Label: "Мониторинги",
-			},
-		},
-		FilterFields: []types.AdminMetaField{
-			{
-				Name:  "Monitorings.ID",
-				Label: "По мониторингам",
+				Name:  "GetWorkGroups",
+				Label: "Рабочие группы",
 			},
 		},
 	}
@@ -137,13 +131,14 @@ func (user *User) Manager(db *gorm.DB) *UserManager {
 }
 
 func (user User) Serializer() types.H {
-	var roles []types.H
-	var monitorings []types.H
+	roles := make([]types.H, 0)
+	workGroups := make([]types.H, 0)
+
 	for _, role := range user.Roles {
 		roles = append(roles, role.Serializer())
 	}
-	for _, m := range user.Monitorings {
-		monitorings = append(monitorings, m.Serializer())
+	for _, wg := range user.WorkGroups {
+		workGroups = append(workGroups, wg.Serializer())
 	}
 	return types.H{
 		"id":            user.ID,
@@ -156,7 +151,7 @@ func (user User) Serializer() types.H {
 		"roles":         roles,
 		"phone":         user.Phone,
 		"active":        user.Active,
-		"monitorings":   monitorings,
+		"monitorings":   workGroups,
 		"is_super_user": user.IsSuperUser,
 	}
 }

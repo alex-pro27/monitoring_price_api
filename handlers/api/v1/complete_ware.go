@@ -58,10 +58,6 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 		completeWare.MonitoringType = monitoringType
 		tx.Preload("Segment").First(&completeWare.Ware, "id = ?", wareData["id"])
 		tx.First(&completeWare.MonitoringShop, "id = ?", wareData["rival_id"])
-		region := models.MonitoringGroups{}
-		if len(user.Monitorings) > 0 && len(user.Monitorings[0].MonitoringGroups) > 0 {
-			region = user.Monitorings[0].MonitoringGroups[0]
-		}
 		completeWare.DateUpload = time.Now()
 		completeWare.User = *user
 		if err := helpers.SetFieldsForModel(&completeWare, wareData); err != nil {
@@ -74,7 +70,7 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 			tx.FirstOrCreate(&photo, photo)
 			completeWare.Photos = append(completeWare.Photos, photo)
 		}
-		completeWare.MonitoringGroup = region
+		completeWare.Region = user.WorkGroups[0].Region
 		tx.Save(&completeWare)
 	}
 	if res := tx.Commit(); res.Error != nil {
@@ -152,12 +148,15 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 			"completed_wares.*,"+
 			"CONCAT(u.user_name, ' ', u.last_name, ' ', u.first_name) as user,"+
 			"s.name as segment,"+
-			"w.name as ware, w.code as code,"+
+			"s.code as segment_code,"+
+			"w.name as ware, "+
+			"w.code as code,"+
 			"ms.name as rival,"+
+			"ms.code as rival_code,"+
 			"mt.name as monitoring_type,"+
-			"mg.name as region",
+			"r.name as region",
 	).Joins(
-		"LEFT JOIN monitoring_groups mg ON mg.id = completed_wares.region_id",
+		"LEFT JOIN regions r ON r.id = completed_wares.region_id",
 	).Joins(
 		"LEFT JOIN monitoring_shops ms ON ms.id = completed_wares.monitoring_shop_id",
 	).Joins(
@@ -172,7 +171,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		"completed_wares.date_upload BETWEEN date(?) AND (date(?) + '1 day'::interval)", from, to,
 	)
 	if len(params["regions"]) > 0 {
-		qs = qs.Where("mg.id IN (?)", params["regions"])
+		qs = qs.Where("r.id IN (?)", params["regions"])
 	}
 	if len(params["shops"]) > 0 {
 		qs = qs.Where("ms.id IN (?)", params["shops"])
@@ -185,6 +184,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		User           string    `json:"user"`
 		DateUpload     time.Time `json:"date_upload"`
 		Segment        string    `json:"segment"`
+		SegmentCode    string    `json:"segment_code"`
 		Ware           string    `json:"ware"`
 		Code           string    `json:"code"`
 		Price          float64   `json:"price"`
@@ -192,6 +192,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		MinPrice       float64   `json:"min_price"`
 		Comment        string    `json:"comment"`
 		Rival          string    `json:"rival"`
+		RivalCode      string    `json:"rival_code"`
 		Photos         []string  `json:"photos"`
 		Region         string    `json:"region"`
 		MonitoringType string    `json:"monitoring_type"`
