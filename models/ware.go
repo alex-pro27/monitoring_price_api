@@ -4,27 +4,20 @@ import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/jinzhu/gorm"
-	"strings"
 )
 
 type Ware struct {
 	gorm.Model
-	Name           string  `gorm:"size:255" form:"label:Название товара;required"`
-	Code           string  `gorm:"size:255" form:"label: Локальный код товара;required"`
-	Barcode        string  `gorm:"size:255" form:"label: ШК товара;"`
-	Description    string  `form:"label:Описание"`
-	Segment        Segment `form:"label:Сегмент"`
-	SegmentId      uint
-	Active         bool             `gorm:"default:true" form:"label:Активный;type:switch"`
-	MonitoringType []MonitoringType `gorm:"many2many:wares_monitoring_types" form:"label:Тип мониторинга"`
+	Name        string  `gorm:"size:255" form:"label:Название товара;required"`
+	Code        string  `gorm:"size:255" form:"label: Локальный код товара;required"`
+	Barcode     string  `gorm:"size:255" form:"label: ШК товара;"`
+	Description string  `form:"label:Описание"`
+	Segment     Segment `form:"label:Сегмент"`
+	SegmentId   uint
 }
 
-func (ware Ware) GetMonitoringType() string {
-	var names []string
-	for _, mt := range ware.MonitoringType {
-		names = append(names, mt.Name)
-	}
-	return strings.Join(names, ", ")
+func (ware Ware) GetSegmentName() string {
+	return fmt.Sprintf("%s %s", ware.Segment.Code, ware.Segment.Name)
 }
 
 func (ware Ware) Serializer() types.H {
@@ -33,7 +26,6 @@ func (ware Ware) Serializer() types.H {
 		"name":        ware.Name,
 		"code":        ware.Code,
 		"description": ware.Description,
-		"active":      ware.Active,
 	}
 }
 
@@ -47,22 +39,18 @@ func (Ware) Meta() types.ModelsMeta {
 func (Ware) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		ExcludeFields: []string{"SegmentId"},
-		SearchFields:  []string{"Name", "Barcode"},
-		Preload:       []string{"Segment", "MonitoringType"},
+		SearchFields:  []string{"Name", "Barcode", "Code"},
+		Preload:       []string{"Segment"},
 		OrderBy:       []string{"SegmentId", "Name"},
 		SortFields: []types.AdminMetaField{
+			{Name: "Code"},
 			{Name: "Name"},
 			{Name: "Barcode"},
-			{Name: "Active"},
 		},
 		ExtraFields: []types.AdminMetaField{
 			{
-				Name:  "Segment.Name",
+				Name:  "GetSegmentName",
 				Label: "Сегмент",
-			},
-			{
-				Name:  "GetMonitoringType",
-				Label: "Типы мониторинга",
 			},
 		},
 		FilterFields: []types.AdminMetaField{

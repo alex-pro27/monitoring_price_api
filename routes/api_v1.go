@@ -28,12 +28,12 @@ func RegisterApiV1Routes(r *mux.Router) {
 	}
 	apiRoutes := []Route{
 		{
-			Path:    "/rival/{region}/{shop}",
+			Path:    "/rivals",
 			Handler: v1.GetRivals,
 			Methods: []string{"GET"},
 		},
 		{
-			Path:    "/wares/{region}/{shop}",
+			Path:    "/wares",
 			Handler: v1.GetWares,
 			Methods: []string{"GET"},
 		},

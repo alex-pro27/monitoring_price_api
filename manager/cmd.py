@@ -2,7 +2,8 @@
 # coding: utf-8
 from __future__ import unicode_literals, print_function
 import os
-
+import re
+from subprocess import PIPE, Popen
 from fire import Fire
 import yaml
 import getpass
@@ -11,6 +12,11 @@ import bcrypt
 import binascii
 from builtins import input
 from psycopg2.extras import DictCursor
+
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir  # use scandir PyPI module on Python < 3.5
 
 
 class Commands(object):
@@ -51,6 +57,9 @@ class Commands(object):
         email = conf["admin"]["EMAIL"]
         print("Input login from {}:".format(admin))
         login = input()
+        if not login:
+            print("Login cannot be empty:".format(admin))
+            return
         password = getpass.getpass("Input password:").encode("ascii")
         confirm_password = getpass.getpass("Confirm password:").encode("ascii")
 
@@ -58,7 +67,7 @@ class Commands(object):
             db = self.__connect_default_db()
             cursor = db.cursor(cursor_factory=DictCursor)
             token = binascii.hexlify(os.urandom(16)).decode('ascii')
-            password = bcrypt.hashpw(password, bcrypt.gensalt(4))
+            password = bcrypt.hashpw(password, bcrypt.gensalt(4)).decode('ascii')
             cursor.execute(
                 """
                 INSERT INTO tokens 
@@ -74,9 +83,9 @@ class Commands(object):
             cursor.execute(
                 """
                 INSERT INTO users
-                (created_at, updated_at, first_name, last_name, user_name, password, email, token_id, is_super_user, is_staff)
+                (created_at, updated_at, first_name, last_name, user_name, password, email, token_id, is_super_user)
                 VALUES
-                (now(), now(), %s, %s, %s, %s, %s, %s, TRUE, TRUE)
+                (now(), now(), %s, %s, %s, %s, %s, %s, TRUE)
                 RETURNING id;
                 """,
                 (
@@ -93,9 +102,33 @@ class Commands(object):
         else:
             print ("Passwords do not match!")
 
-    def init_data(self):
+    def dump(self):
+        # TODO
         pass
 
+    def init_data(self):
+        command = "PGPASSWORD='{password}' pg_restore -c -h {host} -d {database} -U {user} < {filename}"
+        data_path = os.path.join(os.path.realpath(os.path.dirname(__file__)), "data")
+        files = scandir(data_path)
+        conf = self.__get_conf()
+        default_db_conf = conf["databases"]["default"]
+        print("Can this command overwrite existing data, continue? (y/n)")
+        ans = input()
+        if ans not in ["Y", "y", "yes"]:
+            print("canceled")
+            return
+        for f in files:
+            if f.is_file() and re.match(".+\.(psql|du?mp|backup)$", f.name):
+                n_command = command.format(
+                    password=default_db_conf["PASSWORD"],
+                    host=default_db_conf["HOST"],
+                    user=default_db_conf["USER"],
+                    database=default_db_conf["DATABASE"],
+                    filename=f.path
+                )
+                print(n_command)
+                p = Popen(n_command, shell=True, stdin=PIPE)
+                print(p.stdout)
 
 if __name__ == '__main__':
     Fire(Commands)

@@ -6,7 +6,6 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/helpers"
-	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
@@ -22,17 +21,105 @@ import (
 )
 
 type Field struct {
-	Name        string                   `json:"name"`
-	Label       string                   `json:"label"`
-	Type        string                   `json:"type"`
-	Disabled    bool                     `json:"disabled"`
-	Required    bool                     `json:"required"`
-	Value       interface{}              `json:"value"`
-	ContentType string                   `json:"content_type"`
-	Options     []map[string]interface{} `json:"options"`
+	Name         string                   `json:"name"`
+	Label        string                   `json:"label"`
+	Type         string                   `json:"type"`
+	Disabled     bool                     `json:"disabled"`
+	Required     bool                     `json:"required"`
+	Value        interface{}              `json:"value"`
+	ContentType  string                   `json:"content_type"`
+	Options      []map[string]interface{} `json:"options"`
+	Groups       map[uint]string          `json:"groups"`
+	GroupBy      string                   `json:"group_by"`
+	GroupByField string                   `json:"group_by_field"`
 }
 
-func getShortInfo(db *gorm.DB, model interface{}, where ...interface{}) (data []types.H) {
+func addShortInfoToData(iobj reflect.Value, data *[]types.H) {
+	el := iobj
+	if iobj.Kind() == reflect.Ptr {
+		el = iobj.Elem()
+	}
+	strMethod := iobj.MethodByName("String")
+	if el.Kind() != reflect.Invalid {
+		id := el.FieldByName("Model").FieldByName("ID").Interface()
+		if id.(uint) > 0 {
+			if strMethod.Kind() != reflect.Invalid {
+				*data = append(*data, types.H{
+					"value": id,
+					"label": strMethod.Call(nil)[0].Interface().(string),
+				})
+			} else {
+				*data = append(*data, types.H{
+					"value": id,
+					"label": "[Object]",
+				})
+			}
+		}
+	}
+}
+
+func addGroupShortInfoToData(obj reflect.Value, groupBy string, groups *map[uint]string, data *[]types.H) {
+	el := obj
+	if obj.Kind() == reflect.Ptr {
+		el = obj.Elem()
+	}
+
+	addGroup := func(iobj, group reflect.Value) {
+		var groupID uint
+		var id interface{}
+		var itemLabel string
+		var groupName string
+		groupID = group.FieldByName("Model").FieldByName("ID").Interface().(uint)
+		strMethod := iobj.MethodByName("String")
+		groupStrMethod := group.MethodByName("String")
+
+		if groupStrMethod.Kind() != reflect.Invalid {
+			groupName = groupStrMethod.Call(nil)[0].Interface().(string)
+		} else {
+			groupName = "[Object]"
+		}
+		if strMethod.Kind() != reflect.Invalid {
+			itemLabel = strMethod.Call(nil)[0].Interface().(string)
+		} else {
+			itemLabel = "[Object]"
+		}
+
+		id = iobj.FieldByName("Model").FieldByName("ID").Interface()
+		var item types.H
+
+		item = types.H{
+			"value":    id,
+			"label":    itemLabel,
+			"group_id": groupID,
+		}
+		if groups != nil {
+			(*groups)[groupID] = groupName
+		}
+
+		*data = append(*data, item)
+	}
+
+	for i := 0; i < el.Len(); i++ {
+		iobj := el.Index(i)
+		if iobj.Kind() == reflect.Ptr {
+			iobj = iobj.Elem()
+		}
+		if iobj.Kind() == reflect.Interface {
+			iobj = reflect.ValueOf(iobj.Interface())
+		}
+		group := iobj.FieldByName(groupBy)
+		if group.Kind() == reflect.Slice {
+			for i := 0; i < group.Len(); i++ {
+				addGroup(iobj, group.Index(i))
+			}
+		} else {
+			addGroup(iobj, group)
+		}
+	}
+}
+
+func getShortInfo(db *gorm.DB, model interface{}, groupBy string, where ...interface{}) (groups map[uint]string, data []types.H) {
+	groups = make(map[uint]string)
 	if reflect.ValueOf(model).Kind() != reflect.Ptr {
 		model = reflect.New(reflect.TypeOf(model)).Interface()
 	}
@@ -51,41 +138,24 @@ func getShortInfo(db *gorm.DB, model interface{}, where ...interface{}) (data []
 			db = db.Preload(preload)
 		}
 	}
+	if groupBy != "" {
+		db = db.Preload(groupBy)
+	}
 	db.Find(model, where...)
 
-	addToData := func(iobj reflect.Value) {
-		el := iobj
-		if iobj.Kind() == reflect.Ptr {
-			el = iobj.Elem()
-		}
-		strMethod := iobj.MethodByName("String")
-		if el.Kind() != reflect.Invalid {
-			id := el.FieldByName("Model").FieldByName("ID").Interface()
-			if id.(uint) > 0 {
-				if strMethod.Kind() != reflect.Invalid {
-					data = append(data, types.H{
-						"value": id,
-						"label": strMethod.Call(nil)[0].Interface().(string),
-					})
-				} else {
-					data = append(data, types.H{
-						"value": id,
-						"label": "[Object]",
-					})
-				}
+	if obj.Elem().Kind() == reflect.Slice {
+		if groupBy != "" && obj.Elem().Len() > 0 && obj.Elem().Index(0).FieldByName(groupBy).Kind() != reflect.Invalid {
+			addGroupShortInfoToData(obj, groupBy, &groups, &data)
+		} else {
+			for i := 0; i < obj.Elem().Len(); i++ {
+				iobj := obj.Elem().Index(i)
+				addShortInfoToData(iobj, &data)
 			}
 		}
-	}
-
-	if obj.Elem().Kind() == reflect.Slice {
-		for i := 0; i < obj.Elem().Len(); i++ {
-			iobj := obj.Elem().Index(i)
-			addToData(iobj)
-		}
 	} else {
-		addToData(obj.Elem())
+		addShortInfoToData(obj.Elem(), &data)
 	}
-	return data
+	return groups, data
 }
 
 func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (interface{}, []Field) {
@@ -94,7 +164,6 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 	structFields := db.NewScope(model).GetStructFields()
 	obj := reflect.ValueOf(model).Elem()
 	var adminMeta types.AdminMeta
-
 	adminMetaMethod := obj.MethodByName("Admin")
 	if adminMetaMethod.Kind() != reflect.Invalid {
 		adminMeta = adminMetaMethod.Call(nil)[0].Interface().(types.AdminMeta)
@@ -105,26 +174,44 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 
 	if len(where) > 0 {
 		qs := db
-		for _, preload := range adminMeta.Preload {
-			qs = db.Preload(preload)
-		}
+		//for _, preload := range adminMeta.Preload {
+		//	qs = db.Preload(preload)
+		//}
 		qs.Find(model, where...)
 	}
 
 	var ID uint = 0
 	for i := 0; i < obj.NumField(); i++ {
+		fieldObj := obj.Field(i)
 		form := helpers.ParseTag(obj.Type().Field(i).Tag.Get("form"))
-
 		disabled, _ := strconv.ParseBool(form["disabled"])
 		required, _ := strconv.ParseBool(form["required"])
 		empty, _ := strconv.ParseBool(form["empty"])
 
+		var groupName string
+		if form["group_by"] != "" && fieldObj.Kind() == reflect.Slice {
+			elType := reflect.TypeOf(fieldObj.Interface()).Elem()
+			groupField := reflect.New(elType).Elem().FieldByName(form["group_by"])
+			groupFieldKind := groupField.Kind()
+			if groupFieldKind == reflect.Struct {
+				groupName = db.NewScope(groupField.Interface()).GetModelStruct().TableName(db)
+			} else if groupFieldKind == reflect.Slice {
+				elType := reflect.TypeOf(groupField.Interface()).Elem()
+				groupField := reflect.New(elType).Elem()
+				if groupField.Kind() == reflect.Struct {
+					groupName = db.NewScope(groupField.Interface()).GetModelStruct().TableName(db)
+				}
+			}
+		}
+
 		field := Field{
-			Name:     obj.Type().Field(i).Name,
-			Label:    form["label"],
-			Type:     form["type"],
-			Required: required,
-			Disabled: disabled,
+			Name:         obj.Type().Field(i).Name,
+			Label:        form["label"],
+			Type:         form["type"],
+			Required:     required,
+			Disabled:     disabled,
+			GroupBy:      groupName,
+			GroupByField: form["group_by"],
 		}
 
 		if field.Name == "Model" {
@@ -132,7 +219,7 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 			field.Type = "hidden"
 			field.Disabled = true
 			field.Required = true
-			field.Value = obj.Field(i).FieldByName("ID").Interface()
+			field.Value = fieldObj.FieldByName("ID").Interface()
 			ID = field.Value.(uint)
 		} else {
 			index, _ := _streamExclude.IndexOf(field.Name)
@@ -146,12 +233,11 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 			structField := structFields[i+3]
 			defaultValue := structField.TagSettings["DEFAULT"]
 			rel := structField.Relationship
-
 			if !empty {
-				field.Value = obj.Field(i).Interface()
+				value := obj.Field(i).Interface()
+				field.Value = value
 				if rel != nil {
 					field.Type = rel.Kind
-					value := obj.Field(i).Interface()
 					field.ContentType = db.NewScope(value).GetModelStruct().TableName(db)
 					if ID != 0 {
 						switch rel.Kind {
@@ -160,14 +246,16 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 							tableName := rel.JoinTableHandler.Table(db)
 							foreignKey := rel.JoinTableHandler.DestinationForeignKeys()[0].DBName
 							db.Table(tableName).Where(
-								fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]), ID,
+								fmt.Sprintf("\"%s\" = ?", rel.ForeignDBNames[0]), ID,
 							).Pluck(foreignKey, &idx)
-							field.Value = getShortInfo(db, value, "id IN (?)", idx)
+							field.Groups, field.Value = getShortInfo(db, value, form["group_by"], "id IN (?)", idx)
 							break
 						case "has_many":
-							field.Value = getShortInfo(
-								db, obj.Field(i).Interface(),
-								fmt.Sprintf("%s = ?", rel.ForeignDBNames[0]),
+							field.Groups, field.Value = getShortInfo(
+								db,
+								value,
+								form["group_by"],
+								fmt.Sprintf("\"%s\" = ?", rel.ForeignDBNames[0]),
 								ID,
 							)
 							break
@@ -176,7 +264,7 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 							if obj.Field(i).Kind() == reflect.Ptr {
 								value = reflect.New(obj.Type().Field(i).Type.Elem()).Interface()
 							}
-							field.Value = getShortInfo(db, value, "id = ?", associationID)
+							field.Groups, field.Value = getShortInfo(db, value, form["group_by"], "id = ?", associationID)
 							if len(field.Value.([]types.H)) > 0 {
 								field.Value = field.Value.([]types.H)[0]
 							}
@@ -196,7 +284,7 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 						}
 						field.Value = map[string]interface{}{
 							"label": label,
-							"value": obj.Field(i).Interface(),
+							"value": value,
 						}
 						choices := methodChoice.Call(nil)[0]
 						for _, k := range choices.MapKeys() {
@@ -207,7 +295,7 @@ func getFieldsFromModel(db *gorm.DB, model interface{}, where ...interface{}) (i
 						}
 					}
 				} else {
-					switch obj.Field(i).Interface().(type) {
+					switch fieldObj.Interface().(type) {
 					case int, uint, int32, int64, float32, float64:
 						field.Type = "number"
 						if ID == 0 {
@@ -384,7 +472,6 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "PUT":
 			if res := db.FirstOrCreate(model, model); res.Error != nil {
-				logger.Logger.Error(res.Error)
 				common.ErrorResponse(w, r, "Ошибка добавления записи")
 				return
 			}
@@ -392,7 +479,6 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 			break
 		case "POST":
 			if res := db.Save(model); res.Error != nil {
-				logger.Logger.Error(res.Error)
 				common.ErrorResponse(w, r, "Ошибка обновления записи")
 				return
 			}
@@ -400,8 +486,8 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 			break
 		case "DELETE":
 			if res := db.Delete(model, id); res.Error != nil {
-				logger.Logger.Error(res.Error)
 				common.ErrorResponse(w, r, "Ошибка удаления записи")
+				return
 			}
 			break
 		}
@@ -440,10 +526,76 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func FilteredContentType(w http.ResponseWriter, r *http.Request) {
+	contentTypeID, _ := strconv.Atoi(r.FormValue("content_type_id"))
+	fieldName := r.FormValue("field_name")
+	fieldValue := r.FormValue("value")
+	db := context.Get(r, "DB").(*gorm.DB)
+	contentType := models.ContentType{}
+	if contentTypeID == 0 {
+		name := r.FormValue("content_type_name")
+		db.First(&contentType, "\"table\" = ?", name)
+	} else {
+		db.First(&contentType, contentTypeID)
+	}
+	model := databases.FindModelByContentType(db, contentType.Table)
+
+	if model != nil {
+		if !CheckPermission(w, r, models.READ, model) {
+			return
+		}
+		obj := reflect.New(reflect.TypeOf(model))
+		field := obj.Elem().FieldByName(fieldName)
+		fieldKind := field.Kind()
+		modelSlice := reflect.New(reflect.SliceOf(obj.Elem().Type())).Interface()
+
+		if fieldKind == reflect.Slice {
+			elType := reflect.TypeOf(field.Interface()).Elem()
+			if elType.Kind() == reflect.Struct {
+				modelStructFields := db.NewScope(model).GetStructFields()
+				fmt.Print(elType.Name())
+				var groupStructField *gorm.StructField
+				for _, f := range modelStructFields {
+					if f.Relationship != nil && f.Relationship.Kind == "many_to_many" {
+						joinTableHandler := f.Relationship.JoinTableHandler.(*gorm.JoinTableHandler)
+						if joinTableHandler != nil && joinTableHandler.Destination.ModelType.Name() == elType.Name() {
+							groupStructField = f
+							break
+						}
+					}
+				}
+				if groupStructField != nil {
+					tableName := groupStructField.Relationship.JoinTableHandler.Table(db)
+					foreignDBName := groupStructField.Relationship.ForeignDBNames[0]
+					assDBName := groupStructField.Relationship.AssociationForeignDBNames[0]
+					groupID, _ := strconv.Atoi(fieldValue)
+					db = db.Preload(r.FormValue("field_name"), "id = ?", groupID)
+					db.Joins(
+						fmt.Sprintf("INNER JOIN \"%s\" as t ON t.%s = id", tableName, foreignDBName),
+					).Find(modelSlice, fmt.Sprintf("t.%s = ?", assDBName), groupID)
+				}
+			}
+		} else if fieldKind == reflect.Struct {
+			fieldName = helpers.ToSnakeCase(fieldName) + "_id"
+			db = db.Preload(r.FormValue("field_name"))
+			db.Find(modelSlice, fmt.Sprintf("\"%s\" = ?", fieldName), fieldValue)
+		}
+
+		data := make([]types.H, 0)
+		nObj := reflect.ValueOf(modelSlice).Elem()
+		addGroupShortInfoToData(nObj, r.FormValue("field_name"), nil, &data)
+		common.JSONResponse(w, data)
+	} else {
+		common.Forbidden(w, r)
+	}
+}
+
 func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 	contentTypeID, _ := strconv.Atoi(r.FormValue("content_type_id"))
 	searchKeyWords := r.FormValue("keyword")
+	groupBy := r.FormValue("group_by")
 	orderBy := r.FormValue("order_by")
+	//filters := r.FormValue("filters")
 	page, _ := strconv.Atoi(r.FormValue("page"))
 	db := context.Get(r, "DB").(*gorm.DB)
 	contentType := models.ContentType{}
@@ -461,6 +613,9 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		qs := db
+		if groupBy != "" {
+			qs = qs.Preload(groupBy)
+		}
 		obj := reflect.New(reflect.TypeOf(model))
 		adminMetaMethod := obj.MethodByName("Admin")
 		var adminMeta types.AdminMeta
@@ -498,6 +653,14 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+			// TODO
+			//for _, filter := range strings.Split(filters, ",") {
+			//	for _, filterField := range adminMeta.FilterFields {
+			//		if strings.Index(filter, helpers.ToSnakeCase(filterField.Name)) > -1 {
+			//
+			//		}
+			//	}
+			//}
 		}
 		modelSlice := reflect.New(reflect.SliceOf(obj.Elem().Type())).Interface()
 		paginateData := common.Paginate(modelSlice, qs, page, 100, adminMeta.Preload, false)
@@ -511,41 +674,35 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 			meta["name"] = obj.Type().Name()
 			meta["plural"] = obj.Type().Name() + "s"
 		}
-		var result []interface{}
+		var result []types.H
 		short, _ := strconv.ParseBool(r.FormValue("short"))
 		isShort := short || !(len(adminMeta.SortFields) > 0 || len(adminMeta.ExtraFields) > 0)
-		for _, item := range paginateData.Result {
-			iobj := reflect.ValueOf(item)
-			strMethod := iobj.MethodByName("String")
-			if isShort {
-				if strMethod.Kind() != reflect.Invalid {
-					result = append(result, types.H{
-						"value": iobj.FieldByName("Model").FieldByName("ID").Interface(),
-						"label": strMethod.Call(nil)[0].Interface().(string),
-					})
+		groups := make(map[uint]string)
+		if groupBy != "" {
+			addGroupShortInfoToData(reflect.ValueOf(paginateData.Result), groupBy, &groups, &result)
+		} else {
+			for _, item := range paginateData.Result {
+				iobj := reflect.ValueOf(item)
+				if isShort {
+					addShortInfoToData(iobj, &result)
 				} else {
-					result = append(result, types.H{
-						"value": iobj.FieldByName("Model").FieldByName("ID").Interface(),
-						"label": "[Object]",
-					})
-				}
-			} else {
-				item := make(types.H)
-				item["id"] = iobj.FieldByName("Model").FieldByName("ID").Interface()
-				for _, fieldInfo := range adminMeta.SortFields {
-					name := helpers.ToSnakeCase(fieldInfo.Name)
-					val := iobj.FieldByName(fieldInfo.Name)
-					if val.IsValid() {
-						item[name] = iobj.FieldByName(fieldInfo.Name).Interface()
-					} else {
-						item[name] = nil
+					item := make(types.H)
+					item["id"] = iobj.FieldByName("Model").FieldByName("ID").Interface()
+					for _, fieldInfo := range adminMeta.SortFields {
+						name := helpers.ToSnakeCase(fieldInfo.Name)
+						val := iobj.FieldByName(fieldInfo.Name)
+						if val.IsValid() {
+							item[name] = iobj.FieldByName(fieldInfo.Name).Interface()
+						} else {
+							item[name] = nil
+						}
 					}
+					for _, extraField := range adminMeta.ExtraFields {
+						name, value := helpers.GetValue(iobj, extraField.Name)
+						item[name] = value
+					}
+					result = append(result, item)
 				}
-				for _, extraField := range adminMeta.ExtraFields {
-					name, value := helpers.GetValue(iobj, extraField.Name)
-					item[name] = value
-				}
-				result = append(result, item)
 			}
 		}
 
@@ -556,6 +713,7 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 			"meta":     meta,
 			"paginate": paginateData.Paginate,
 			"result":   result,
+			"groups":   groups,
 		}
 
 		if !isShort {

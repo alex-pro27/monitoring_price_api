@@ -47,7 +47,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func CheckAuth(w http.ResponseWriter, r *http.Request) {
-	common.JSONResponse(w, types.H{
-		"error": false,
-	})
+	user := context.Get(r, "user").(*models.User)
+	common.JSONResponse(w, user.Serializer())
 }

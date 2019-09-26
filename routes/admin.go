@@ -29,14 +29,14 @@ func RegisterAdminRoutes(r *mux.Router) {
 			Handler: admin.Logout,
 			Methods: []string{"GET", "POST"},
 		},
+	}
+
+	contentTypesRoutes := []Route{
 		{
 			Path:    "/check-auth",
 			Handler: admin.CheckAuth,
 			Methods: []string{"GET", "POST"},
 		},
-	}
-
-	contentTypesRoutes := []Route{
 		{
 			Path:    "/available-views",
 			Handler: admin.GetAvailableViews,
@@ -45,6 +45,11 @@ func RegisterAdminRoutes(r *mux.Router) {
 		{
 			Path:    "/content-types",
 			Handler: admin.AllFieldsInModel,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/content-types/filter",
+			Handler: admin.FilteredContentType,
 			Methods: []string{"GET"},
 		},
 		{
@@ -69,16 +74,36 @@ func RegisterAdminRoutes(r *mux.Router) {
 		},
 	}
 
-	usersRoutes := []Route{
+	monitorinRoutes := []Route{
 		{
-			Path:    "/users",
-			Handler: admin.AllUsers,
+			Path:    "/monitorings",
+			Handler: admin.GetAllMonitoringList,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/update-monitorings",
+			Handler: admin.UpdateMonitorings,
+			Access:  models.WRITE,
+			Methods: []string{"POST"},
+		},
+		{
+			Path:    "/product-template-file",
+			Handler: admin.GetTemplateBlank,
 			Access:  models.READ,
 			Methods: []string{"GET"},
 		},
 	}
 
+	websockets := []Route{
+		{
+			Path:    "/ws",
+			Handler: admin.HandleWebsocket,
+			Methods: []string{"GET", "POST"},
+		},
+	}
+
 	RegisterRoutes(router, noCheckAuthRoutes, nil)
-	RegisterRoutes(authRouter, usersRoutes, models.User{})
+	RegisterRoutes(router, websockets, nil)
 	RegisterRoutes(authRouter, contentTypesRoutes, nil)
+	RegisterRoutes(authRouter, monitorinRoutes, models.Monitoring{})
 }

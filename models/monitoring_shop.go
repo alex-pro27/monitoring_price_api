@@ -28,28 +28,25 @@ type MonitoringShop struct {
 	*/
 	IsMustPhoto bool `form:"label:Обязательность фотографирования"`
 	/**
-	Группа мониторинга
+	Мониториги
 	*/
-	WorkGroup []WorkGroup `gorm:"many2many:work_groups_monitoring_shops;" form:"label:Рабочая группа"`
+	WorkGroups []WorkGroup `gorm:"many2many:work_groups_monitoring_shops" form:"label:Рабочие группы"`
 	/**
-	Сегменты
+	Доступные сегменты
 	*/
-	Segments []Segment `gorm:"many2many:monitoring_shops_segments;" form:"label:Сегменты"`
-	Active   bool      `gorm:"default:true" form:"label:Активный;type:switch"`
+	Segments []Segment `gorm:"many2many:monitoring_shops_segments" form:"label:Доступные сегменты"`
+
+	Active bool `gorm:"default:true" form:"label:Активный;type:switch"`
 }
 
 func (monitoringShop MonitoringShop) Serializer() types.H {
-	var segmentIDX []uint
-	for _, segment := range monitoringShop.Segments {
-		segmentIDX = append(segmentIDX, segment.ID)
-	}
+
 	return types.H{
 		"id":            monitoringShop.ID,
 		"code":          monitoringShop.Code,
 		"name":          monitoringShop.Name,
 		"address":       monitoringShop.Address,
 		"is_must_photo": monitoringShop.IsMustPhoto,
-		"segments":      segmentIDX,
 	}
 }
 

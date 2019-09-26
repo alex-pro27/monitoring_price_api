@@ -15,9 +15,10 @@ var DefaultModels = []interface{}{
 	models.User{},
 	models.Segment{},
 	models.Ware{},
-	models.WorkGroup{},
-	models.Regions{},
+	models.Monitoring{},
+	models.Region{},
 	models.MonitoringShop{},
+	models.WorkGroup{},
 	models.Token{},
 	models.Period{},
 	models.CompletedWare{},
@@ -58,26 +59,21 @@ func FindModelByContentType(db *gorm.DB, contentType string) interface{} {
 
 func MigrateDefaultDB() {
 	db := ConnectDefaultDB()
-
 	db.AutoMigrate(DefaultModels...)
-
 	db.Model(models.User{}).AddForeignKey("token_id", "tokens(id)", "CASCADE", "CASCADE")
 	db.Model(models.Ware{}).AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
 	db.Model(models.CompletedWare{}).AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "RESTRICT", "CASCADE")
 	db.Model(models.CompletedWare{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "CASCADE")
 	db.Model(models.CompletedWare{}).AddForeignKey("monitoring_type_id", "monitoring_types(id)", "RESTRICT", "CASCADE")
-	db.Model(models.CompletedWare{}).AddForeignKey("region_id", "regions(id)", "RESTRICT", "CASCADE")
 	db.Model(models.CompletedWare{}).AddForeignKey("ware_id", "wares(id)", "RESTRICT", "CASCADE")
+	db.Model(models.CompletedWare{}).AddForeignKey("region_id", "regions(id)", "RESTRICT", "CASCADE")
 	db.Model(models.Photos{}).AddForeignKey("completed_ware_id", "completed_wares(id)", "CASCADE", "CASCADE")
 	db.Model(models.Views{}).AddForeignKey("parent_id", "views(id)", "RESTRICT", "CASCADE")
 	db.Model(models.Views{}).AddForeignKey("content_type_id", "content_types(id)", "RESTRICT", "CASCADE")
 	db.Model(models.Permission{}).AddForeignKey("view_id", "views(id)", "CASCADE", "CASCADE")
 
-	db.Table("users_work_groups").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
-	db.Table("users_work_groups").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
-
-	db.Table("monitoring_shops_segments").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
-	db.Table("monitoring_shops_segments").AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
+	db.Table("work_groups_users").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.Table("work_groups_users").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
 
 	db.Table("monitoring_types_periods").AddForeignKey("monitoring_type_id", "monitoring_types(id)", "CASCADE", "CASCADE")
 	db.Table("monitoring_types_periods").AddForeignKey("period_id", "periods(id)", "CASCADE", "CASCADE")
@@ -88,18 +84,24 @@ func MigrateDefaultDB() {
 	db.Table("work_groups_monitoring_shops").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
 	db.Table("work_groups_monitoring_shops").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
 
-	db.Table("work_groups_regions").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
-	db.Table("work_groups_regions").AddForeignKey("regions_id", "regions(id)", "CASCADE", "CASCADE")
+	db.Table("regions_monitorings").AddForeignKey("monitoring_id", "monitorings(id)", "CASCADE", "CASCADE")
+	db.Table("regions_monitorings").AddForeignKey("region_id", "regions(id)", "CASCADE", "CASCADE")
+
+	db.Table("monitorings_work_groups").AddForeignKey("monitoring_id", "monitorings(id)", "CASCADE", "CASCADE")
+	db.Table("monitorings_work_groups").AddForeignKey("work_group_id", "work_groups(id)", "CASCADE", "CASCADE")
 
 	db.Table("users_roles").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	db.Table("users_roles").AddForeignKey("role_id", "roles(id)", "CASCADE", "CASCADE")
 
-	db.Table("wares_monitoring_types").AddForeignKey("ware_id", "wares(id)", "CASCADE", "CASCADE")
-	db.Table("wares_monitoring_types").AddForeignKey("monitoring_type_id", "monitoring_types(id)", "CASCADE", "CASCADE")
+	db.Table("monitorings_wares").AddForeignKey("ware_id", "wares(id)", "CASCADE", "CASCADE")
+	db.Table("monitorings_wares").AddForeignKey("monitoring_id", "monitorings(id)", "CASCADE", "CASCADE")
+
+	db.Table("monitoring_shops_segments").AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
+	db.Table("monitoring_shops_segments").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
 
 	for _, model := range DefaultModels {
 		tableName := db.NewScope(model).GetModelStruct().TableName(db)
-		db.FirstOrCreate(&models.ContentType{}, models.ContentType{
+		db.FirstOrCreate(new(models.ContentType), models.ContentType{
 			Table: tableName,
 		})
 	}

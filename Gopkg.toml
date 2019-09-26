@@ -80,3 +80,16 @@
 [[constraint]]
   branch = "master"
   name = "github.com/nfnt/resize"
+
+[[constraint]]
+  name = "github.com/wesovilabs/koazee"
+  version = "0.0.4"
+
+
+[[constraint]]
+  name = "github.com/tealeg/xlsx"
+  version = "1.0.3"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/otium/queue"

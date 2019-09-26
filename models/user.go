@@ -19,11 +19,10 @@ type User struct {
 	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
 	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
 	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
-	WorkGroup   []WorkGroup `gorm:"many2many:users_work_groups;" form:"label:Рабочая группа"`
+	WorkGroups  []WorkGroup `gorm:"many2many:work_groups_users;" form:"label:Рабочие группы"`
 	Online      bool        `gorm:"default:false" form:"disabled"`
 	Active      bool        `gorm:"default:true" form:"type:switch;label:Активировать"`
 	IsSuperUser bool        `gorm:"default:false"`
-	IsStaff     bool        `gorm:"default:false" form:"label:Сотрудник"`
 	TokenId     uint
 	Token       Token
 }
@@ -34,8 +33,8 @@ func (user User) GetFullName() string {
 
 func (user User) GetWorkGroups() string {
 	names := make([]string, 0)
-	for _, wg := range user.WorkGroup {
-		names = append(names, wg.Name)
+	for _, m := range user.WorkGroups {
+		names = append(names, m.Name)
 	}
 	return strings.Join(names, ", ")
 }
@@ -101,7 +100,7 @@ func (user User) Meta() types.ModelsMeta {
 
 func (user User) Admin() types.AdminMeta {
 	return types.AdminMeta{
-		Preload:       []string{"WorkGroup"},
+		Preload:       []string{"WorkGroups.Monitorings"},
 		ExcludeFields: []string{"TokenId", "IsSuperUser", "Token"},
 		OrderBy:       []string{"LastName", "FirstName"},
 		SearchFields:  []string{"LastName", "FirstName", "Email", "Phone"},
@@ -113,7 +112,7 @@ func (user User) Admin() types.AdminMeta {
 		ExtraFields: []types.AdminMetaField{
 			{
 				Name:  "GetWorkGroups",
-				Label: "Рабочая группа",
+				Label: "Рабочие группы",
 			},
 		},
 	}
@@ -132,12 +131,13 @@ func (user *User) Manager(db *gorm.DB) *UserManager {
 }
 
 func (user User) Serializer() types.H {
-	var roles []types.H
-	var workGroups []types.H
+	roles := make([]types.H, 0)
+	workGroups := make([]types.H, 0)
+
 	for _, role := range user.Roles {
 		roles = append(roles, role.Serializer())
 	}
-	for _, wg := range user.WorkGroup {
+	for _, wg := range user.WorkGroups {
 		workGroups = append(workGroups, wg.Serializer())
 	}
 	return types.H{
@@ -151,8 +151,7 @@ func (user User) Serializer() types.H {
 		"roles":         roles,
 		"phone":         user.Phone,
 		"active":        user.Active,
-		"work_groups":   workGroups,
+		"monitorings":   workGroups,
 		"is_super_user": user.IsSuperUser,
-		"is_staff":      user.IsStaff,
 	}
 }

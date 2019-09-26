@@ -16,9 +16,11 @@ func GetSegments(w http.ResponseWriter, r *http.Request) {
 	// TODO Добавить фильтр по периодам
 	user := context.Get(r, "user").(*models.User)
 
-	var workGroupsIDX []uint
-	for _, wg := range user.WorkGroup {
-		workGroupsIDX = append(workGroupsIDX, wg.ID)
+	var monitoringIDX []uint
+	for _, wg := range user.WorkGroups {
+		for _, m := range wg.Monitorings {
+			monitoringIDX = append(monitoringIDX, m.ID)
+		}
 	}
 	var segments []models.Segment
 	db := context.Get(r, "DB").(*gorm.DB)
@@ -31,7 +33,7 @@ func GetSegments(w http.ResponseWriter, r *http.Request) {
 	).Select(
 		"DISTINCT id, name, code, active",
 	).Where(
-		"wm.work_group_id IN (?) AND active = true", workGroupsIDX,
+		"wm.work_group_id IN (?) AND active = true", monitoringIDX,
 	).Find(
 		&segments,
 	)

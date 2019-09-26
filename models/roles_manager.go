@@ -6,39 +6,38 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type ViewManager struct {
+type RolesManager struct {
 	*gorm.DB
-	self *Views
+	self *Role
 }
 
-func (manager *ViewManager) Create(fields types.H) (err error) {
-	viewType := fields["view_type"]
-	if viewType != nil {
-		manager.self.ViewType = ViewType(viewType.(float64))
-	}
+func (manager *RolesManager) Create(fields types.H) (err error) {
 	if err = helpers.SetFieldsForModel(manager.self, fields); err != nil {
 		return err
 	}
+	role_type := fields["role_type"]
+	if role_type != nil {
+		manager.self.RoleType = RoleType(role_type.(float64))
+	}
 	manager.DB.Create(manager.self)
-	manager.NewRecord(manager.self)
 	helpers.SetManyToMany(manager.DB, manager.self, fields)
 	return nil
 }
 
-func (manager *ViewManager) Update(fields types.H) (err error) {
-	viewType := fields["view_type"]
-	if viewType != nil {
-		manager.self.ViewType = ViewType(viewType.(float64))
-	}
+func (manager *RolesManager) Update(fields types.H) (err error) {
 	if err = helpers.SetFieldsForModel(manager.self, fields); err != nil {
 		return err
+	}
+	role_type := fields["role_type"]
+	if role_type != nil {
+		manager.self.RoleType = RoleType(role_type.(float64))
 	}
 	manager.Save(manager.self)
 	helpers.SetManyToMany(manager.DB, manager.self, fields)
 	return nil
 }
 
-func (manager *ViewManager) Delete() (err error) {
+func (manager *RolesManager) Delete() (err error) {
 	if res := manager.DB.Delete(manager.self); res.Error != nil {
 		return res.Error
 	}

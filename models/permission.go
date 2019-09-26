@@ -26,7 +26,7 @@ type Permission struct {
 	gorm.Model
 	ViewId uint
 	View   Views            `gorm:"foreignkey:ViewId" form:"label:Представление"`
-	Access PermissionAccess `gorm:"default:3" form:"choice:GetChoiceAccess" form:"label:Доступ"`
+	Access PermissionAccess `gorm:"default:3" form:"choice:GetChoiceAccess; label:Доступ"`
 }
 
 func (Permission) GetChoiceAccess() map[PermissionAccess]string {
