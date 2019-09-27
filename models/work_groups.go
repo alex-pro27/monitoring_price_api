@@ -15,6 +15,28 @@ type WorkGroup struct {
 	MonitoringShops []MonitoringShop `gorm:"many2many:work_groups_monitoring_shops" form:"label:Магазины для мониторинга"`
 }
 
+func (workGroup WorkGroup) GetRegionName() string {
+	return workGroup.Region.Name
+}
+
+func (WorkGroup) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		ExcludeFields: []string{"RegionId"},
+		SearchFields:  []string{"Name"},
+		Preload:       []string{"Region"},
+		OrderBy:       []string{"RegionId", "Name"},
+		SortFields: []types.AdminMetaField{
+			{Name: "Name"},
+		},
+		ExtraFields: []types.AdminMetaField{
+			{
+				Name:  "GetRegionName",
+				Label: "Регион",
+			},
+		},
+	}
+}
+
 func (WorkGroup) Meta() types.ModelsMeta {
 	return types.ModelsMeta{
 		Name:   "Рабочая группа",

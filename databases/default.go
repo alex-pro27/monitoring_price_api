@@ -31,7 +31,7 @@ var DefaultModels = []interface{}{
 func ConnectDefaultDB() *gorm.DB {
 	dbConf := config.Config.Databases.Default
 	params := fmt.Sprintf(
-		"host=%s port=%s user=%s dbname=%s password=%s",
+		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		dbConf.Host,
 		dbConf.Port,
 		dbConf.User,

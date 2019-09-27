@@ -11,8 +11,21 @@ import (
 
 func GetAllMonitoringList(w http.ResponseWriter, r *http.Request) {
 	db := context.Get(r, "DB").(*gorm.DB)
+	user := context.Get(r, "user").(models.User)
+	is_admin := false
+	for _, r := range user.Roles {
+		if is_admin = r.RoleType == models.IS_ADMIN; is_admin {
+			break
+		}
+	}
 	monitorings := make([]models.Monitoring, 0)
-	db.Find(&monitorings)
+	if is_admin {
+		db.Find(&monitorings)
+	} else {
+		for _, wg := range user.WorkGroups {
+			monitorings = append(monitorings, wg.Monitorings...)
+		}
+	}
 	data := make([]types.H, 0)
 	for _, it := range monitorings {
 		data = append(data, it.Serializer())
