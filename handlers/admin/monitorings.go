@@ -11,7 +11,7 @@ import (
 
 func GetAllMonitoringList(w http.ResponseWriter, r *http.Request) {
 	db := context.Get(r, "DB").(*gorm.DB)
-	user := context.Get(r, "user").(models.User)
+	user := context.Get(r, "user").(*models.User)
 	is_admin := false
 	for _, r := range user.Roles {
 		if is_admin = r.RoleType == models.IS_ADMIN; is_admin {

@@ -61,6 +61,13 @@ func (completedWare CompletedWare) GetPhotos() string {
 	return strings.Join(photos, ",")
 }
 
+func (completeWare CompletedWare) GetMissing() string {
+	if completeWare.Missing {
+		return "Да"
+	}
+	return "Нет"
+}
+
 func (CompletedWare) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		Preload: []string{"Ware", "User", "MonitoringShop", "MonitoringType", "Region", "Photos"},
@@ -91,6 +98,10 @@ func (CompletedWare) Admin() types.AdminMeta {
 			{
 				Name:  "Region.Name",
 				Label: "Регион",
+			},
+			{
+				Name:  "GetMissing",
+				Label: "Отсутвует",
 			},
 			{
 				Name:   "GetPhotos",
