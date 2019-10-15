@@ -142,6 +142,7 @@ func MixinAuthMiddle(authTypes uint) func(h http.Handler) http.Handler {
 				switch allFlags[i] {
 				case BASIC_AUTH:
 					if user = basicAuth(r); user != nil {
+						w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 						break CYCLE
 					}
 				case TOKEN_AUTH:
