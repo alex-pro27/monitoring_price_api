@@ -186,3 +186,13 @@ func ParseTag(tag string) map[string]string {
 	}
 	return data
 }
+
+func GetFlags(flag uint, size int) []int {
+	res := make([]int, 0)
+	for i := 0; i < size; i++ {
+		if (flag >> uint(i) & 1) > 0 {
+			res = append(res, i)
+		}
+	}
+	return res
+}

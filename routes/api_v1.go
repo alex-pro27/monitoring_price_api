@@ -12,8 +12,8 @@ func RegisterApiV1Routes(r *mux.Router) {
 	router.Use(middleware.DefaultDBMiddleware)
 	routerTokenAuth := router.NewRoute().Subrouter()
 	routerTokenAuth.Use(middleware.TokenAuthMiddleware)
-	routerBasicAuth := router.NewRoute().Subrouter()
-	routerBasicAuth.Use(middleware.BasicAuthMiddleware)
+	routerBasicAndSessionAuth := router.NewRoute().Subrouter()
+	routerBasicAndSessionAuth.Use(middleware.MixinAuthMiddle(middleware.BASIC_AUTH | middleware.SESSION_AUTH))
 	notAuthRoutes := []Route{
 		{
 			Path:    "/user/{barcode}",
@@ -53,7 +53,7 @@ func RegisterApiV1Routes(r *mux.Router) {
 			Methods: []string{"POST"},
 		},
 	}
-	apiBasicAuth := []Route{
+	apiBasicAndSessionAuth := []Route{
 		{
 			Path:    "/get-monitoring-data",
 			Handler: v1.GetCompletedWares,
@@ -79,8 +79,13 @@ func RegisterApiV1Routes(r *mux.Router) {
 			Handler: v1.GetRegions,
 			Methods: []string{"GET"},
 		},
+		{
+			Path:    "/work-groups",
+			Handler: v1.GetWorkGroups,
+			Methods: []string{"GET"},
+		},
 	}
 	RegisterRoutes(router, notAuthRoutes, nil)
 	RegisterRoutes(routerTokenAuth, apiRoutes, nil)
-	RegisterRoutes(routerBasicAuth, apiBasicAuth, nil)
+	RegisterRoutes(routerBasicAndSessionAuth, apiBasicAndSessionAuth, nil)
 }

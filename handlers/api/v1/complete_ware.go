@@ -125,7 +125,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 	if to.IsZero() {
 		to = from
 	}
-	names := []string{"regions", "shops", "monitoring_types"}
+	names := []string{"regions", "rivals", "monitoring_types", "work_groups"}
 	params := make(map[string][]int)
 	for _, name := range names {
 		params[name] = koazee.StreamOf(
@@ -154,7 +154,8 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 			"ms.name as rival,"+
 			"ms.code as rival_code,"+
 			"mt.name as monitoring_type,"+
-			"r.name as region",
+			"r.name as region,"+
+			"wg.name as work_group",
 	).Joins(
 		"LEFT JOIN regions r ON r.id = completed_wares.region_id",
 	).Joins(
@@ -167,17 +168,24 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		"LEFT JOIN segments s ON s.id = w.segment_id",
 	).Joins(
 		"LEFT JOIN monitoring_types mt ON mt.id = completed_wares.monitoring_type_id",
+	).Joins(
+		"INNER JOIN work_groups_users wgu ON wgu.user_id = u.id",
+	).Joins(
+		"INNER JOIN work_groups wg ON wg.id = wgu.work_group_id",
 	).Where(
 		"completed_wares.date_upload BETWEEN date(?) AND (date(?) + '1 day'::interval)", from, to,
 	)
 	if len(params["regions"]) > 0 {
 		qs = qs.Where("r.id IN (?)", params["regions"])
 	}
-	if len(params["shops"]) > 0 {
-		qs = qs.Where("ms.id IN (?)", params["shops"])
+	if len(params["rivals"]) > 0 {
+		qs = qs.Where("ms.code IN (?)", params["rivals"])
 	}
 	if len(params["monitoring_types"]) > 0 {
 		qs = qs.Where("mt.id IN (?)", params["monitoring_types"])
+	}
+	if len(params["work_groups"]) > 0 {
+		qs = qs.Where("wg.id IN (?)", params["work_groups"])
 	}
 	type CompleteWare struct {
 		ID             uint      `json:"-"`
@@ -195,6 +203,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		RivalCode      string    `json:"rival_code"`
 		Photos         []string  `json:"photos"`
 		Region         string    `json:"region"`
+		WorkGroup      string    `json:"work_group"`
 		MonitoringType string    `json:"monitoring_type"`
 	}
 	completeWares := make([]*CompleteWare, 0)
