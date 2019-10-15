@@ -137,12 +137,13 @@ func MixinAuthMiddle(authTypes uint) func(h http.Handler) http.Handler {
 			allFlags := []uint{BASIC_AUTH, TOKEN_AUTH, SESSION_AUTH}
 			flagsIndexes := helpers.GetFlags(authTypes, len(allFlags))
 			var user *models.User
+			isBasic := false
 		CYCLE:
 			for _, i := range flagsIndexes {
 				switch allFlags[i] {
 				case BASIC_AUTH:
+					isBasic = true
 					if user = basicAuth(r); user != nil {
-						w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 						break CYCLE
 					}
 				case TOKEN_AUTH:
@@ -163,6 +164,9 @@ func MixinAuthMiddle(authTypes uint) func(h http.Handler) http.Handler {
 			logger.Logger.Warningf(
 				"Not authorized, forbidden: IP: %s, url: %s", utils.GetIPAddress(r), r.RequestURI,
 			)
+			if isBasic {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			}
 			w.WriteHeader(http.StatusUnauthorized)
 			_, err := w.Write([]byte("Not authorized, forbidden"))
 			logger.HandleError(err)
