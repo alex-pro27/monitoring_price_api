@@ -61,6 +61,7 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 		completeWare.DateUpload = time.Now()
 		completeWare.User = *user
 		if err := helpers.SetFieldsForModel(&completeWare, wareData); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			common.ErrorResponse(w, r, err.Error())
 			tx.Rollback()
 			return
@@ -71,10 +72,16 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 			completeWare.Photos = append(completeWare.Photos, photo)
 		}
 		completeWare.Region = user.WorkGroups[0].Region
-		tx.Save(&completeWare)
+		if res := tx.Save(&completeWare); res.Error != nil {
+			tx.Rollback()
+			w.WriteHeader(http.StatusInternalServerError)
+			common.ErrorResponse(w, r, res.Error.Error())
+			return
+		}
 	}
 	if res := tx.Commit(); res.Error != nil {
 		tx.Rollback()
+		w.WriteHeader(http.StatusInternalServerError)
 		common.ErrorResponse(w, r, res.Error.Error())
 	} else {
 		common.JSONResponse(w, types.H{

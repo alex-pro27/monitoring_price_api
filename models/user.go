@@ -16,8 +16,8 @@ type User struct {
 	LastName    string      `gorm:"size:255;" form:"required;label:Фамилия"`
 	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;label:Login"`
 	Password    string      `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
-	Email       string      `gorm:"type:varchar(100);unique_index;not null" form:"required"`
-	Phone       string      `gorm:"type:varchar(17);" form:"label:Телефон"`
+	Email       string      `gorm:"type:varchar(100)" form:"required"`
+	Phone       string      `gorm:"type:varchar(17)" form:"label:Телефон"`
 	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
 	WorkGroups  []WorkGroup `gorm:"many2many:work_groups_users;" form:"label:Рабочие группы"`
 	Online      bool        `gorm:"default:false" form:"disabled"`
