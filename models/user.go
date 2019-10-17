@@ -15,8 +15,8 @@ type User struct {
 	FirstName   string      `gorm:"size:255;not null" form:"required;label:Имя"`
 	LastName    string      `gorm:"size:255;" form:"required;label:Фамилия"`
 	UserName    string      `gorm:"size:255;unique_index;not null" form:"required;label:Login"`
-	Password    string      `gorm:"size:60;not null" form:"required;type:password;label:Пароль"`
-	Email       string      `gorm:"type:varchar(100)" form:"required"`
+	Password    string      `gorm:"size:60" form:"type:password;label:Пароль"`
+	Email       string      `gorm:"type:varchar(100)"`
 	Phone       string      `gorm:"type:varchar(17)" form:"label:Телефон"`
 	Roles       []Role      `gorm:"many2many:users_roles;" form:"label:Роли для администрирования"`
 	WorkGroups  []WorkGroup `gorm:"many2many:work_groups_users;" form:"label:Рабочие группы"`
@@ -61,6 +61,9 @@ func (user *User) SetUserName(username string) error {
 
 func (user *User) SetEmail(email string) error {
 	email = strings.ToLower(strings.Trim(email, ""))
+	if email == "" {
+		return nil
+	}
 	matched, _ := regexp.MatchString(
 		"^[a-z0-9_][a-z0-9.\\-_]{1,100}@[a-z0-9\\-_]{1,100}\\.[a-z0-9\\-_]{1,50}[a-z0-9_]$",
 		email,
@@ -74,7 +77,8 @@ func (user *User) SetEmail(email string) error {
 
 func (user *User) SetPassword(password string) error {
 	if password = strings.Trim(password, ""); len(password) < 3 {
-		return errors.New("Пароль должен состоять минимум из 3х символов")
+		//return errors.New("Пароль должен состоять минимум из 3х символов")
+		return nil
 	}
 	user.Password = password
 	user.HashPassword()

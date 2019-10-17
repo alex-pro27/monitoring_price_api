@@ -235,6 +235,14 @@
   version = "v0.0.4"
 
 [[projects]]
+  branch = "master"
+  digest = "1:4f703e5098fdb9a6beb5415b625a3de1c4fcb500daa5a0771077cdc639a021ff"
+  name = "github.com/xlab/closer"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "03326addb7c265ee27cd5d5d145362165d8195a8"
+
+[[projects]]
   digest = "1:429596ab6fea904f2ea2a74de9c95692e39a5a6269e778b770676374e7063f3e"
   name = "go.opencensus.io"
   packages = [
@@ -478,6 +486,7 @@
     "github.com/pkg/errors",
     "github.com/tealeg/xlsx",
     "github.com/wesovilabs/koazee",
+    "github.com/xlab/closer",
     "golang.org/x/crypto/bcrypt",
     "google.golang.org/api/option",
     "gopkg.in/yaml.v2",

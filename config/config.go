@@ -21,12 +21,13 @@ type TypeConfig struct {
 	}
 
 	System struct {
-		SecretKey string `yaml:"SECRET_KEY"`
-		Debug     bool   `yaml:"DEBUG"`
-		Server    string `yaml:"SERVER"`
-		LogPath   string `yaml:"LOG_PATH"`
-		PinCode   string `yaml:"PINCODE"`
-		ServerUrl string `yaml:"SERVER_URL"`
+		SecretKey   string `yaml:"SECRET_KEY"`
+		Debug       bool   `yaml:"DEBUG"`
+		Server      string `yaml:"SERVER"`
+		LogPath     string `yaml:"LOG_PATH"`
+		PinCode     string `yaml:"PINCODE"`
+		ServerUrl   string `yaml:"SERVER_URL"`
+		MemProfiler string `yaml:"MEM_PROFILER"`
 	}
 
 	Session struct {
@@ -57,10 +58,10 @@ type TypeConfig struct {
 	}
 
 	SMS struct {
-		URL 		string 	`yaml:"URL"`
-		Login 		string	`yaml:"LOGIN"`
-		Password 	string	`yaml:"PASSWORD"`
-		Source 		string	`yaml:"SOURCE"`
+		URL      string `yaml:"URL"`
+		Login    string `yaml:"LOGIN"`
+		Password string `yaml:"PASSWORD"`
+		Source   string `yaml:"SOURCE"`
 	}
 }
 
