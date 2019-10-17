@@ -48,7 +48,7 @@ func CompleteWare(w http.ResponseWriter, r *http.Request) {
 			"ware_id = ? "+
 				"AND user_id = ? "+
 				"AND monitoring_shop_id = ? "+
-				"AND monitoring_type_id = ?"+
+				"AND monitoring_type_id = ? "+
 				"AND date_upload BETWEEN current_date and (current_date + '1 day'::interval)",
 			wareData["id"],
 			user.ID,
@@ -205,6 +205,8 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		Price          float64   `json:"price"`
 		MaxPrice       float64   `json:"max_price"`
 		MinPrice       float64   `json:"min_price"`
+		Discount       bool      `json:"discount"`
+		Missing        bool      `json:"missing"`
 		Comment        string    `json:"comment"`
 		Rival          string    `json:"rival"`
 		RivalCode      string    `json:"rival_code"`

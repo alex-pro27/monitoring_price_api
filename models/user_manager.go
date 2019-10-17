@@ -24,8 +24,10 @@ func (manager *UserManager) Create(fields types.H) (err error) {
 		errs["user_name"] = fmt.Sprintf("Имя пользователя %s уже занято", manager.self.UserName)
 	}
 
-	if res := manager.First(&User{}, "email = ?", manager.self.Email); !res.RecordNotFound() {
-		errs["email"] = fmt.Sprintf("Email %s уже занят", manager.self.Email)
+	if manager.self.Email != "" {
+		if res := manager.First(&User{}, "email = ?", manager.self.Email); !res.RecordNotFound() {
+			errs["email"] = fmt.Sprintf("Email %s уже занят", manager.self.Email)
+		}
 	}
 
 	if len(errs) > 0 {
