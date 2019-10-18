@@ -47,9 +47,11 @@ func (manager *UserManager) Update(fields types.H) (err error) {
 		return err
 	}
 	errs := make(map[string]string)
-	res := manager.First(&User{}, "email = ? and not id = ?", manager.self.Email, manager.self.ID)
-	if !res.RecordNotFound() {
-		errs["email"] = fmt.Sprintf("Email %s занят", manager.self.Email)
+	if manager.self.Email != "" {
+		res := manager.First(&User{}, "email = ? and not id = ?", manager.self.Email, manager.self.ID)
+		if !res.RecordNotFound() {
+			errs["email"] = fmt.Sprintf("Email %s занят", manager.self.Email)
+		}
 	}
 
 	if len(errs) > 0 {
