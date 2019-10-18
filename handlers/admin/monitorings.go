@@ -20,7 +20,13 @@ func GetAllMonitoringList(w http.ResponseWriter, r *http.Request) {
 	}
 	monitorings := make([]models.Monitoring, 0)
 	if is_admin {
-		db.Find(&monitorings)
+		db.Preload(
+			"Region",
+		).Order(
+			"\"name\", cast(NULLIF(regexp_replace(\"name\", E'\\\\D', '', 'g'), '') AS integer)",
+		).Find(
+			&monitorings,
+		)
 	} else {
 		for _, wg := range user.WorkGroups {
 			monitorings = append(monitorings, wg.Monitorings...)

@@ -265,7 +265,6 @@ func taskUpdateMonitoring(args interface{}) {
 				allMonitorings = append(allMonitorings, m)
 			}
 		}
-		allMonitorings = koazee.StreamOf(allMonitorings).RemoveDuplicates().Out().Val().([]models.Monitoring)
 	}
 
 	for _, m := range allMonitorings {

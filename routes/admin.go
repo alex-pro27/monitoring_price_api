@@ -78,6 +78,7 @@ func RegisterAdminRoutes(r *mux.Router) {
 		{
 			Path:    "/monitorings",
 			Handler: admin.GetAllMonitoringList,
+			Access:  models.READ,
 			Methods: []string{"GET"},
 		},
 		{
