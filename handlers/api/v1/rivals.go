@@ -6,7 +6,9 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
+	"github.com/wesovilabs/koazee"
 	"net/http"
+	"strings"
 )
 
 /**
@@ -44,7 +46,9 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 		SegmentID uint
 	}
 
-	db.Model(models.Ware{}).Select("wares.id ware_id, segment_id").Joins(
+	db.Model(models.Ware{}).Select(
+		"wares.id ware_id, segment_id",
+	).Joins(
 		"INNER JOIN monitorings_wares mw ON mw.ware_id = wares.id",
 	).Where("mw.monitoring_id IN (?)", monitoringIDX).Scan(&wares)
 
@@ -61,7 +65,9 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 					if waresIDxByRivalIDBySegmentID[rival.ID][ws.SegmentID] == nil {
 						waresIDxByRivalIDBySegmentID[rival.ID][ws.SegmentID] = make([]uint, 0)
 					}
-					waresIDxByRivalIDBySegmentID[rival.ID][ws.SegmentID] = append(waresIDxByRivalIDBySegmentID[rival.ID][ws.SegmentID], ws.WareID)
+					waresIDxByRivalIDBySegmentID[rival.ID][ws.SegmentID] = append(
+						waresIDxByRivalIDBySegmentID[rival.ID][ws.SegmentID], ws.WareID,
+					)
 					_segments[ws.SegmentID] = s
 				}
 			}
@@ -86,13 +92,18 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 				"wares": waresIDX,
 			})
 		}
-		data = append(data, types.H{
-			"id":            rival.ID,
-			"name":          rival.Name,
-			"address":       rival.Address,
-			"segments":      segments,
-			"is_must_photo": rival.IsMustPhoto,
-		})
+		if segments != nil {
+			segments = koazee.StreamOf(segments).Sort(func(a, b types.H) int {
+				return strings.Compare(a["code"].(string), b["code"].(string))
+			}).Out().Val().([]types.H)
+			data = append(data, types.H{
+				"id":            rival.ID,
+				"name":          rival.Name,
+				"address":       rival.Address,
+				"segments":      segments,
+				"is_must_photo": rival.IsMustPhoto,
+			})
+		}
 	}
 
 	common.JSONResponse(w, data)
