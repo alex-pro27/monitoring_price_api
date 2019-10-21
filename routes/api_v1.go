@@ -12,8 +12,8 @@ func RegisterApiV1Routes(r *mux.Router) {
 	router.Use(middleware.DefaultDBMiddleware)
 	routerTokenAuth := router.NewRoute().Subrouter()
 	routerTokenAuth.Use(middleware.TokenAuthMiddleware)
-	routerBasicAndSessionAuth := router.NewRoute().Subrouter()
-	routerBasicAndSessionAuth.Use(middleware.MixinAuthMiddle(middleware.BASIC_AUTH | middleware.SESSION_AUTH))
+	routerBasicAuth := router.NewRoute().Subrouter()
+	routerBasicAuth.Use(middleware.BasicAuthMiddleware)
 	notAuthRoutes := []Route{
 		{
 			Path:    "/user/{barcode}",
@@ -87,5 +87,5 @@ func RegisterApiV1Routes(r *mux.Router) {
 	}
 	RegisterRoutes(router, notAuthRoutes, nil)
 	RegisterRoutes(routerTokenAuth, apiRoutes, nil)
-	RegisterRoutes(routerBasicAndSessionAuth, apiBasicAndSessionAuth, nil)
+	RegisterRoutes(routerBasicAuth, apiBasicAndSessionAuth, nil)
 }
