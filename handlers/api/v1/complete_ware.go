@@ -104,6 +104,11 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 	filePath := path.Join(config.Config.Static.MediaRoot, header.Filename)
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
 
+	defer func() {
+		logger.HandleError(photo.Close())
+		logger.HandleError(f.Close())
+	}()
+
 	if err != nil {
 		common.ErrorResponse(w, r, err.Error())
 		return
@@ -112,11 +117,6 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(w, r, err.Error())
 		return
 	}
-
-	defer func() {
-		logger.HandleError(photo.Close())
-		logger.HandleError(f.Close())
-	}()
 	common.JSONResponse(w, types.H{
 		"error":     false,
 		"url_photo": filePath,
