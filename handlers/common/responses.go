@@ -53,6 +53,9 @@ func FileResponse(w http.ResponseWriter, r *http.Request) {
 	f, err := os.Open(path.Join(media, name))
 	buffer := new(bytes.Buffer)
 	bufferBytes := make([]byte, 0)
+	defer func() {
+		buffer.Truncate(0)
+	}()
 	if err != nil && !isThumb {
 		Error404(w, r)
 		return
@@ -91,11 +94,11 @@ func FileResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	itoa := strconv.Itoa(len(bufferBytes))
-	w.Header().Set("Content-Type", itoa)
+	w.Header().Set("Content-Type", http.DetectContentType(bufferBytes))
 	w.Header().Set("Content-Length", itoa)
 	_, err = w.Write(bufferBytes)
 	logger.HandleError(err)
-	defer logger.HandleError(f.Close())
+	logger.HandleError(f.Close())
 }
 
 func InternalServerError(w http.ResponseWriter, r *http.Request, rec interface{}) {
