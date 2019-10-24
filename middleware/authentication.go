@@ -131,7 +131,11 @@ func SessionAuthMiddleware(h http.Handler) http.Handler {
 	})
 }
 
-func MixinAuthMiddle(authTypes uint) func(h http.Handler) http.Handler {
+/**
+Авторизация
+@var authType uint: - BASIC_AUTH | TOKEN_AUTH | SESSION_AUTH
+*/
+func AuthMiddleware(authTypes uint) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			allFlags := []uint{BASIC_AUTH, TOKEN_AUTH, SESSION_AUTH}

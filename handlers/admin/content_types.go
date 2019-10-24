@@ -595,6 +595,12 @@ func AllFieldsInModel(w http.ResponseWriter, r *http.Request) {
 	searchKeyWords := r.FormValue("keyword")
 	groupBy := r.FormValue("group_by")
 	orderBy := r.FormValue("order_by")
+	pageSize, _ := strconv.Atoi(r.FormValue("page_size"))
+	if pageSize == 0 {
+		pageSize = 100
+	} else if pageSize > 500 {
+		pageSize = 500
+	}
 	//filters := r.FormValue("filters")
 	page, _ := strconv.Atoi(r.FormValue("page"))
 	db := context.Get(r, "DB").(*gorm.DB)

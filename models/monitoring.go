@@ -39,6 +39,9 @@ func (Monitoring) Meta() types.ModelsMeta {
 func (Monitoring) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		SearchFields: []string{"Name"},
+		OrderBy: []string{
+			"Name",
+		},
 		SortFields: []types.AdminMetaField{
 			{Name: "Name"},
 			{Name: "Active"},

@@ -13,25 +13,24 @@ import (
 */
 type CompletedWare struct {
 	gorm.Model
-	UserId            uint           `gorm:"default:null"`
-	User              User           `form:"label:Пользователь"`
-	DateUpload        time.Time      `form:"label:Дата выгрузки"`
-	Missing           bool           `form:"label:Отсутсвует"`
-	Discount          bool           `form:"label:Скидка"`
-	Price             float64        `form:"label:Цена"`
-	MinPrice          float64        `form:"label:Минимальная цена"`
-	MaxPrice          float64        `form:"label:Максимальная цена"`
-	Comment           string         `form:"label:Комментарий"`
-	WareId            uint           `gorm:"default:null"`
-	Ware              Ware           `form:"label:Товар"`
-	MonitoringShopId  uint           `gorm:"default:null"`
-	MonitoringShop    MonitoringShop `form:"label:Магазин"`
-	MonitoringTypeId  uint           `gorm:"default:null"`
-	MonitoringType    MonitoringType `form:"label:Тип мониторинга"`
-	MonitoringGroupId uint           `gorm:"default:null"`
-	RegionId          uint           `gorm:"default:null"`
-	Region            Region         `form:"label:Регион"`
-	Photos            []Photos       `gorm:"foreignkey:CompletedWareId" form:"label:Фотографии"`
+	UserId           uint           `gorm:"default:null"`
+	User             User           `form:"label:Пользователь"`
+	DateUpload       time.Time      `form:"label:Дата выгрузки"`
+	Missing          bool           `form:"label:Отсутсвует"`
+	Discount         bool           `form:"label:Скидка"`
+	Price            float64        `form:"label:Цена"`
+	MinPrice         float64        `form:"label:Минимальная цена"`
+	MaxPrice         float64        `form:"label:Максимальная цена"`
+	Comment          string         `form:"label:Комментарий"`
+	WareId           uint           `gorm:"default:null"`
+	Ware             Ware           `form:"label:Товар"`
+	MonitoringShopId uint           `gorm:"default:null"`
+	MonitoringShop   MonitoringShop `form:"label:Магазин"`
+	MonitoringTypeId uint           `gorm:"default:null"`
+	MonitoringType   MonitoringType `form:"label:Тип мониторинга"`
+	RegionId         uint           `gorm:"default:null"`
+	Region           Region         `form:"label:Регион"`
+	Photos           []Photos       `gorm:"foreignkey:CompletedWareId" form:"label:Фотографии"`
 }
 
 func (CompletedWare) Meta() types.ModelsMeta {

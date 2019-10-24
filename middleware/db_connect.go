@@ -10,8 +10,10 @@ import (
 func DefaultDBMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		db := databases.ConnectDefaultDB()
+		defer func() {
+			logger.HandleError(db.Close())
+		}()
 		context.Set(r, "DB", db)
 		h.ServeHTTP(w, r)
-		defer logger.HandleError(db.Close())
 	})
 }
