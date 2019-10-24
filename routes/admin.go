@@ -16,7 +16,7 @@ func RegisterAdminRoutes(r *mux.Router) {
 		middleware.DefaultDBMiddleware,
 	)
 	authRouter := router.NewRoute().Subrouter()
-	authRouter.Use(middleware.SessionAuthMiddleware)
+	authRouter.Use(middleware.AuthMiddleware(middleware.SESSION_AUTH | middleware.TOKEN_AUTH))
 
 	noCheckAuthRoutes := []Route{
 		{
@@ -95,6 +95,15 @@ func RegisterAdminRoutes(r *mux.Router) {
 		},
 	}
 
+	completeWaresRoutes := []Route{
+		{
+			Path:    "/complete-wares",
+			Handler: admin.GetCompletedWares,
+			Access:  models.READ,
+			Methods: []string{"GET"},
+		},
+	}
+
 	websockets := []Route{
 		{
 			Path:    "/ws",
@@ -107,4 +116,5 @@ func RegisterAdminRoutes(r *mux.Router) {
 	RegisterRoutes(router, websockets, nil)
 	RegisterRoutes(authRouter, contentTypesRoutes, nil)
 	RegisterRoutes(authRouter, monitorinRoutes, models.Monitoring{})
+	RegisterRoutes(authRouter, completeWaresRoutes, models.CompletedWare{})
 }

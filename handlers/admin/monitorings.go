@@ -23,7 +23,7 @@ func GetAllMonitoringList(w http.ResponseWriter, r *http.Request) {
 		db.Preload(
 			"Region",
 		).Order(
-			"\"name\", cast(NULLIF(regexp_replace(\"name\", E'\\\\D', '', 'g'), '') AS integer)",
+			"cast(NULLIF(regexp_replace(\"name\", E'\\\\D', '', 'g'), '') AS integer), \"name\"",
 		).Find(
 			&monitorings,
 		)

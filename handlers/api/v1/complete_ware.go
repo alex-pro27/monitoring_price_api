@@ -242,6 +242,10 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if page == 0 {
+		page = 1
+	}
+
 	data := types.H{
 		"paginate": common.PaginateInfo{
 			CurrentPage: page,
