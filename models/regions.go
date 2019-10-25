@@ -14,6 +14,12 @@ type Region struct {
 	Monitorings []Monitoring `gorm:"many2many:regions_monitorings;" form:"label:Мониториги"`
 }
 
+func (Region) Admin() types.AdminMeta {
+	return types.AdminMeta{
+		OrderBy: []string{"Name"},
+	}
+}
+
 func (region Region) Serializer() types.H {
 	return types.H{
 		"id":   region.ID,
