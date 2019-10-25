@@ -24,7 +24,7 @@ func (WorkGroup) Admin() types.AdminMeta {
 		ExcludeFields: []string{"RegionId"},
 		SearchFields:  []string{"Name"},
 		Preload:       []string{"Region"},
-		OrderBy:       []string{"RegionId", "Name"},
+		OrderBy:       []string{"Name"},
 		SortFields: []types.AdminMetaField{
 			{Name: "Name"},
 		},

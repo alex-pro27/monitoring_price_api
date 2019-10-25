@@ -60,6 +60,7 @@ func (MonitoringShop) Meta() types.ModelsMeta {
 func (MonitoringShop) Admin() types.AdminMeta {
 	return types.AdminMeta{
 		SearchFields: []string{"Name", "Address"},
+		OrderBy:      []string{"Code", "Name"},
 		SortFields: []types.AdminMetaField{
 			{Name: "Name"},
 			{Name: "Address"},

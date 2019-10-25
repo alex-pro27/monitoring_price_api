@@ -111,16 +111,19 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 	}
 	if orderBy != "" {
 		orderMap := map[string]string{
-			"ware":         "w.name",
-			"code":         "w.code",
-			"user_name":    "u.last_name",
-			"segment":      "s.name",
-			"segment_code": "s.code",
-			"region":       "r.name",
-			"rival":        "ms.name",
-			"rival_code":   "ms.code",
-			"price":        "completed_wares.price",
-			"date_upload":  "completed_wares.date_upload",
+			"ware":            "w.name",
+			"code":            "w.code",
+			"user_name":       "u.last_name",
+			"segment":         "s.name",
+			"segment_code":    "s.code",
+			"region":          "r.name",
+			"rival":           "ms.name",
+			"rival_code":      "ms.code",
+			"price":           "completed_wares.price",
+			"date_upload":     "completed_wares.date_upload",
+			"work_group":      "wg.name",
+			"missing":         "completed_wares.missing",
+			"monitoring_type": "mt.name",
 		}
 		order := ""
 		for _, ordName := range strings.Split(orderBy, ",") {
