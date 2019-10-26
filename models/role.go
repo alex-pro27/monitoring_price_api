@@ -24,6 +24,7 @@ type Role struct {
 	Name        string       `gorm:"size:255;not null" form:"label:Название;required"`
 	RoleType    RoleType     `gorm:"default:0" form:"choice:GetChoiceRoleType;label:Тип пользователя"`
 	Permissions []Permission `gorm:"many2many:roles_permissions;" form:"label:Разрешение"`
+	Users       []User       `gorm:"many2many:users_roles;" form:"label:Пользователи"`
 }
 
 func (role Role) GetChoiceRoleType() map[RoleType]string {

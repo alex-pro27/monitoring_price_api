@@ -54,6 +54,7 @@ func FileResponse(w http.ResponseWriter, r *http.Request) {
 	buffer := new(bytes.Buffer)
 	bufferBytes := make([]byte, 0)
 	defer func() {
+		buffer.Reset()
 		buffer.Truncate(0)
 	}()
 	if err != nil && !isThumb {
