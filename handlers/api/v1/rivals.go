@@ -35,10 +35,19 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 		"DISTINCT monitoring_shops.*",
 	).Joins(
 		"INNER JOIN work_groups_monitoring_shops wgms ON wgms.monitoring_shop_id = monitoring_shops.id",
+	).Joins(
+		"INNER JOIN monitorings_work_groups wgm ON wgm.work_group_id = wgms.work_group_id",
+	).Joins(
+		"INNER JOIN monitorings m ON m.id = wgm.monitoring_id",
+	).Joins(
+		"INNER JOIN monitoring_types mt ON mt.id = m.monitoring_type_id",
+	).Joins(
+		"INNER JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
 	).Find(
 		&rivals,
-		"monitoring_shops.active = true AND wgms.work_group_id IN (?)",
+		"monitoring_shops.active = true AND wgms.work_group_id IN (?) AND mtp.period_id IN (?)",
 		workGroupIDX,
+		periodsIDX,
 	)
 
 	var wares []struct {
@@ -74,7 +83,7 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var data []types.H
+	data := make([]types.H, 0)
 
 	for _, rival := range rivals {
 		var segments []types.H

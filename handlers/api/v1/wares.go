@@ -47,6 +47,16 @@ func GetWares(w http.ResponseWriter, r *http.Request) {
 		"INNER JOIN monitorings_wares mw ON mw.ware_id = wares.id",
 	).Joins(
 		"INNER JOIN monitorings m ON m.id = mw.monitoring_id",
-	).Where("mw.monitoring_id IN (?)", monitoringIDX).Scan(&data)
+	).Joins(
+		"INNER JOIN monitoring_types mt ON mt.id = m.monitoring_type_id",
+	).Joins(
+		"INNER JOIN monitoring_types_periods mtp ON mtp.monitoring_type_id = mt.id",
+	).Joins(
+		"INNER JOIN periods p ON p.id = mtp.period_id",
+	).Where(
+		"mw.monitoring_id IN (?) AND p.id IN (?)",
+		monitoringIDX,
+		periodsIDX,
+	).Scan(&data)
 	common.JSONResponse(w, data)
 }
