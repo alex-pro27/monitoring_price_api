@@ -51,7 +51,8 @@ func (manager *PeriodManager) GetAvailablePeriods() []Period {
 				}
 			}
 		} else {
-			if currentDate.Unix() > periodDates.Dates[0].Unix() && currentDate.Unix() < periodDates.Dates[1].Unix() {
+			if currentDate.After(periodDates.Dates[0]) &&
+				currentDate.Before(periodDates.Dates[1].AddDate(0, 0, 1)) {
 				periods = append(periods, period)
 			}
 		}

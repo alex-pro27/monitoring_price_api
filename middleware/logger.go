@@ -16,7 +16,11 @@ func LoggerMiddleware(h http.Handler) http.Handler {
 		defer func() {
 			if rec := recover(); rec != nil {
 				if config.Config.System.Debug {
-					logger.Logger.Errorf("500 IP:%s - %s: %s%s - %v", utils.GetIPAddress(r), r.Method, r.Host, r.URL.Path, rec)
+					logger.Logger.Errorf(
+						"500 IP:%s - %s: %s%s - %#v",
+						utils.GetIPAddress(r),
+						r.Method, r.Host, r.URL.Path, rec,
+					)
 					panic(rec)
 				} else {
 					common.InternalServerError(w, r, rec)
