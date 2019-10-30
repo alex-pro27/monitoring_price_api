@@ -50,40 +50,42 @@ func FileResponse(w http.ResponseWriter, r *http.Request) {
 	media := config.Config.Static.MediaRoot
 	isThumb, _ := regexp.MatchString(".+_thumb\\.(jpe?g|png|gif)", name)
 	var f *os.File
-	f, err := os.Open(path.Join(media, name))
+	f, fileOpenErr := os.Open(path.Join(media, name))
+	defer func() {
+		logger.HandleError(f.Close())
+	}()
 	buffer := new(bytes.Buffer)
 	bufferBytes := make([]byte, 0)
-	defer func() {
-		buffer.Reset()
-		buffer.Truncate(0)
-	}()
-	if err != nil && !isThumb {
+	if fileOpenErr != nil && !isThumb {
 		Error404(w, r)
 		return
 	}
-	if isThumb {
-		f, err = os.Open(path.Join(media, name))
+	if isThumb && fileOpenErr != nil {
+		pattern := regexp.MustCompile("(.*)_thumb\\.(jpe?g|png|gif)")
+		fname := pattern.ReplaceAllString(name, "${1}.${2}")
+		ff, err := os.Open(path.Join(media, fname))
+		defer func() {
+			logger.HandleError(ff.Close())
+		}()
 		if err != nil {
-			pattern := regexp.MustCompile("(.*)_thumb\\.(jpe?g|png|gif)")
-			fname := pattern.ReplaceAllString(name, "${1}.${2}")
-			f, err = os.Open(path.Join(media, fname))
-			if err != nil {
-				Error404(w, r)
-				return
-			}
-			img, _, err := image.Decode(f)
-			if err != nil {
-				panic(err)
-			}
-			newImage := resize.Resize(160, 0, img, resize.Lanczos3)
-			if err = jpeg.Encode(buffer, newImage, nil); err != nil {
-				panic(err)
-			}
-			f, _ = os.OpenFile(path.Join(media, name), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
-			bufferBytes = buffer.Bytes()
-			if _, err := io.Copy(f, buffer); err != nil {
-				panic(err)
-			}
+			Error404(w, r)
+			return
+		}
+		img, _, err := image.Decode(ff)
+		if err != nil {
+			panic(err)
+		}
+		newImage := resize.Thumbnail(160, 160, img, resize.Lanczos3)
+		if err = jpeg.Encode(buffer, newImage, nil); err != nil {
+			panic(err)
+		}
+		newFile, _ := os.OpenFile(path.Join(media, name), os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660)
+		defer func() {
+			logger.HandleError(newFile.Close())
+		}()
+		bufferBytes = buffer.Bytes()
+		if _, err := io.Copy(newFile, buffer); err != nil {
+			panic(err)
 		}
 	}
 
@@ -97,9 +99,8 @@ func FileResponse(w http.ResponseWriter, r *http.Request) {
 	itoa := strconv.Itoa(len(bufferBytes))
 	w.Header().Set("Content-Type", http.DetectContentType(bufferBytes))
 	w.Header().Set("Content-Length", itoa)
-	_, err = w.Write(bufferBytes)
+	_, err := w.Write(bufferBytes)
 	logger.HandleError(err)
-	logger.HandleError(f.Close())
 }
 
 func InternalServerError(w http.ResponseWriter, r *http.Request, rec interface{}) {

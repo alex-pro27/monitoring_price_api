@@ -18,7 +18,7 @@ type Views struct {
 	Name          string      `gorm:"size:255" form:"label:Название;"`
 	PositionMenu  uint        `gorm:"default:0" form:"label:Позиция в меню"`
 	Icon          string      `grom:"size:255" form:"label:Иконка"`
-	ViewType      ViewType    `gorm:"default:0" form:"label:Тип;choice:GetViewTypeChoices;required"`
+	ViewType      ViewType    `gorm:"default:0" form:"label:Тип;choice:GetViewTypeChoices"`
 	ParentId      uint        `gorm:"default:null"`
 	Parent        *Views      `form:"label: Родитель;"`
 	RoutePath     string      `gorm:"size:255" form:"label:URL path;required"`
@@ -74,7 +74,7 @@ func (Views) Admin() types.AdminMeta {
 }
 
 func (view *Views) CRUD(db *gorm.DB) types.CRUDManager {
-	return &ViewManager{db, view}
+	return &ViewsManager{db, view}
 }
 
 func (view Views) String() string {

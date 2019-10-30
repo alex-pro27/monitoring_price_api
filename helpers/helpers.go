@@ -5,6 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"github.com/tealeg/xlsx"
+	"os"
+	"path"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -13,6 +16,40 @@ import (
 )
 
 const ISO8601 = "2006-01-02T15:04:05"
+
+func CreateXLSX(header []string, items [][]string, fileName string) (filePath string, err error) {
+	if fileName == "" {
+		fileName = string(time.Now().Unix())
+	}
+	filePath = path.Join(os.TempDir(), fmt.Sprintf("%s.xlsx", fileName))
+	file := xlsx.NewFile()
+	sheet, err := file.AddSheet("Sheet1")
+	if err != nil {
+		return "", err
+	}
+	row := sheet.AddRow()
+	headerStyle := xlsx.Style{
+		Font: xlsx.Font{
+			Bold: true,
+		},
+	}
+	for _, title := range header {
+		cell := row.AddCell()
+		cell.SetStyle(&headerStyle)
+		cell.Value = title
+	}
+	for _, rowData := range items {
+		row := sheet.AddRow()
+		for _, value := range rowData {
+			cell := row.AddCell()
+			cell.Value = value
+		}
+	}
+	if err = file.Save(filePath); err != nil {
+		return "", err
+	}
+	return filePath, nil
+}
 
 func ToCamelCase(str string) string {
 	link := regexp.MustCompile("(^[A-Za-z])|_([A-Za-z])")

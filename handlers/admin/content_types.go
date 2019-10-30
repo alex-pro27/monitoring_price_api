@@ -417,7 +417,8 @@ func GetContentTypeFields(w http.ResponseWriter, r *http.Request) {
 
 func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 	var err error
-	contentTypeID, _ := strconv.Atoi(r.PostFormValue("content_type_id"))
+	vars := mux.Vars(r)
+	contentTypeID, _ := strconv.Atoi(vars["content_type_id"])
 	db := context.Get(r, "DB").(*gorm.DB)
 	contentType := models.ContentType{}
 	db.First(&contentType, contentTypeID)
@@ -454,7 +455,6 @@ func CRUDContentType(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" || r.Method == "DELETE" {
-		vars := mux.Vars(r)
 		id, _ = strconv.Atoi(vars["id"])
 		db.First(model, id)
 		if obj.Elem().FieldByName("ID").Interface().(uint) == 0 {
