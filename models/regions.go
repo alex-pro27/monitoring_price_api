@@ -29,8 +29,8 @@ func (region Region) Serializer() types.H {
 
 func (Region) Meta() types.ModelsMeta {
 	return types.ModelsMeta{
-		Name:   "Группа мониторинга",
-		Plural: "Группы мониторинга",
+		Name:   "Регион",
+		Plural: "Регионы",
 	}
 }
 

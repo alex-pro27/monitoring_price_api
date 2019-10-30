@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
+	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
@@ -15,25 +16,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
 func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
-	var file *xlsx.File
-	var sheet *xlsx.Sheet
-	var row *xlsx.Row
-	var cell *xlsx.Cell
-	var err error
-
-	file = xlsx.NewFile()
-	sheet, err = file.AddSheet("Sheet1")
-	if err != nil {
-		common.ErrorResponse(w, r, err.Error())
-		return
-	}
 	header := []string{
 		"ШК товара",
 		"Код товара",
@@ -41,18 +29,6 @@ func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
 		"Сегмент",
 		"Типы мониторинга",
 	}
-	row = sheet.AddRow()
-	headerStyle := xlsx.Style{
-		Font: xlsx.Font{
-			Bold: true,
-		},
-	}
-	for _, title := range header {
-		cell = row.AddCell()
-		cell.SetStyle(&headerStyle)
-		cell.Value = title
-	}
-	row = sheet.AddRow()
 	example := []string{
 		"",
 		"33982",
@@ -60,17 +36,16 @@ func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
 		"130 МАСЛО, МАРГАРИН, МАЙОНЕЗЫ",
 		"KVI, Первые цены",
 	}
-	for _, title := range example {
-		cell = row.AddCell()
-		cell.Value = title
-	}
-	file_path := path.Join(os.TempDir(), "products_blank.xlsx")
-	err = file.Save(file_path)
+
+	filePath, err := helpers.CreateXLSX(header, [][]string{example}, "")
 	if err != nil {
 		common.ErrorResponse(w, r, err.Error())
 		return
 	}
-	f, err := os.Open(file_path)
+	f, err := os.Open(filePath)
+	defer func() {
+		defer logger.HandleError(f.Close())
+	}()
 	if err != nil {
 		common.ErrorResponse(w, r, err.Error())
 		return
@@ -86,7 +61,6 @@ func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=products_blank.xlsx")
 	_, err = w.Write(bufferBytes)
 	logger.HandleError(err)
-	defer logger.HandleError(f.Close())
 }
 
 func UpdateMonitorings(w http.ResponseWriter, r *http.Request) {

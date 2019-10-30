@@ -6,12 +6,12 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type ViewManager struct {
+type ViewsManager struct {
 	*gorm.DB
 	self *Views
 }
 
-func (manager *ViewManager) Create(fields types.H) (err error) {
+func (manager *ViewsManager) Create(fields types.H) (err error) {
 	viewType := fields["view_type"]
 	if viewType != nil {
 		manager.self.ViewType = ViewType(viewType.(float64))
@@ -25,7 +25,7 @@ func (manager *ViewManager) Create(fields types.H) (err error) {
 	return nil
 }
 
-func (manager *ViewManager) Update(fields types.H) (err error) {
+func (manager *ViewsManager) Update(fields types.H) (err error) {
 	viewType := fields["view_type"]
 	if viewType != nil {
 		manager.self.ViewType = ViewType(viewType.(float64))
@@ -38,7 +38,7 @@ func (manager *ViewManager) Update(fields types.H) (err error) {
 	return nil
 }
 
-func (manager *ViewManager) Delete() (err error) {
+func (manager *ViewsManager) Delete() (err error) {
 	if res := manager.DB.Delete(manager.self); res.Error != nil {
 		return res.Error
 	}

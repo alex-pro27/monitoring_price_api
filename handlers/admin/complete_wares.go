@@ -2,11 +2,17 @@ package admin
 
 import (
 	"fmt"
+	"github.com/alex-pro27/monitoring_price_api/config"
+	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
+	"github.com/alex-pro27/monitoring_price_api/helpers"
+	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
+	"github.com/alex-pro27/monitoring_price_api/services"
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
+	"github.com/otium/queue"
 	"github.com/wesovilabs/koazee"
 	"math"
 	"net/http"
@@ -16,7 +22,30 @@ import (
 	"time"
 )
 
-func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
+type CompleteWare struct {
+	ID             uint      `json:"id"`
+	UserBarcode    string    `json:"user_barcode"`
+	UserName       string    `json:"user_name"`
+	DateUpload     time.Time `json:"date_upload"`
+	Segment        string    `json:"segment"`
+	SegmentCode    string    `json:"segment_code"`
+	Ware           string    `json:"ware"`
+	Code           string    `json:"code"`
+	Price          float64   `json:"price"`
+	MaxPrice       float64   `json:"max_price"`
+	MinPrice       float64   `json:"min_price"`
+	Discount       bool      `json:"discount"`
+	Missing        bool      `json:"missing"`
+	Comment        string    `json:"comment"`
+	Rival          string    `json:"rival"`
+	RivalCode      string    `json:"rival_code"`
+	Photos         []string  `json:"photos"`
+	Region         string    `json:"region"`
+	WorkGroup      string    `json:"work_group"`
+	MonitoringType string    `json:"monitoring_type"`
+}
+
+func getCompleteWares(r *http.Request, preparePhoto func(string) string, limit int) ([]*CompleteWare, int) {
 	user := context.Get(r, "user").(*models.User)
 	allowAllData := -1
 	if !user.IsSuperUser {
@@ -46,9 +75,6 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 			return x > 0
 		}).RemoveDuplicates().Out().Val().([]int)
 	}
-	limit := 250
-	page, _ := strconv.Atoi(r.FormValue("page"))
-	start := page*limit - limit
 	db := context.Get(r, "DB").(*gorm.DB)
 	qs := db.Model(
 		&models.CompletedWare{},
@@ -159,66 +185,169 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
-	type CompleteWare struct {
-		ID             uint      `json:"id"`
-		UserBarcode    string    `json:"user_barcode"`
-		UserName       string    `json:"user_name"`
-		DateUpload     time.Time `json:"date_upload"`
-		Segment        string    `json:"segment"`
-		SegmentCode    string    `json:"segment_code"`
-		Ware           string    `json:"ware"`
-		Code           string    `json:"code"`
-		Price          float64   `json:"price"`
-		MaxPrice       float64   `json:"max_price"`
-		MinPrice       float64   `json:"min_price"`
-		Discount       bool      `json:"discount"`
-		Missing        bool      `json:"missing"`
-		Comment        string    `json:"comment"`
-		Rival          string    `json:"rival"`
-		RivalCode      string    `json:"rival_code"`
-		Photos         []string  `json:"photos"`
-		Region         string    `json:"region"`
-		WorkGroup      string    `json:"work_group"`
-		MonitoringType string    `json:"monitoring_type"`
-	}
 	completeWares := make([]*CompleteWare, 0)
-
 	count := 0
 	qs.Count(&count)
-	qs.Offset(start).Limit(limit).Order("date_upload DESC").Scan(&completeWares)
+	if limit > 0 {
+		page, _ := strconv.Atoi(r.FormValue("page"))
+		start := page*limit - limit
+		qs = qs.Offset(start).Limit(limit)
+	} else {
+		qs = qs.Limit(10000)
+	}
+	qs.Order("date_upload DESC").Scan(&completeWares)
 	photos := make([]models.Photos, 0)
 
 	if len(completeWares) > 0 {
 		idx := koazee.StreamOf(completeWares).Map(func(x *CompleteWare) uint { return x.ID }).Out().Val()
 		db.Find(&photos, "completed_ware_id IN (?)", idx)
 	}
-
-	var length int
-	if length = limit; limit != len(completeWares) {
-		length = len(completeWares)
-	}
 	for _, ware := range completeWares {
 		for _, photo := range photos {
 			if photo.CompletedWareId == ware.ID {
-				ware.Photos = append(ware.Photos, "/api/admin/media/"+photo.Path)
+				ware.Photos = append(
+					ware.Photos,
+					preparePhoto(photo.Path),
+				)
 			}
 		}
 	}
+	return completeWares, count
+}
 
+func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
+	limit := 100
+	completeWares, count := getCompleteWares(
+		r,
+		func(path string) string {
+			return "/api/admin/media/" + path
+		},
+		limit,
+	)
+	page, _ := strconv.Atoi(r.FormValue("page"))
 	if page == 0 {
 		page = 1
 	}
-
 	data := types.H{
 		"paginate": common.PaginateInfo{
 			CurrentPage: page,
 			Count:       count,
-			Length:      length,
+			Length:      len(completeWares),
 			CountPage:   int(math.Ceil(float64(count) / float64(limit))),
 		},
 		"result": completeWares,
 	}
-
 	common.JSONResponse(w, data)
+}
+
+func GenerateReport(w http.ResponseWriter, r *http.Request) {
+	user := context.Get(r, "user").(*models.User)
+	if user.Email == "" {
+		common.ErrorResponse(w, r, "Нет email адресса для отправки")
+	}
+	q := queue.NewQueue(sendReportTask, 1)
+	q.Push(r)
+	common.JSONResponse(w, types.H{
+		"success": true,
+	})
+}
+
+func sendReportTask(request interface{}) {
+	r := request.(*http.Request)
+	db := databases.ConnectDefaultDB()
+	context.Set(r, "DB", db)
+	defer func() {
+		logger.HandleError(db.Close())
+	}()
+	completeWares, count := getCompleteWares(
+		r,
+		func(path string) string {
+			return config.Config.System.ServerUrl + "/api/monitoring/media/" + path
+		},
+		0,
+	)
+	user := context.Get(r, "user").(*models.User)
+	from, _ := time.Parse("2006-01-02", r.FormValue("datefrom"))
+	to, _ := time.Parse("2006-01-02", r.FormValue("dateto"))
+	header := []string{
+		"Дата выгрузки",
+		"Регион",
+		"Код конкурента",
+		"Тип мониторига",
+		"Бренд конкурента",
+		"Конкурент",
+		"Исполнитель",
+		"Магазин",
+		"Группа товаров",
+		"Артикул",
+		"Товар",
+		"Цена магазина",
+		"Цена конкурента",
+		"Макс. цена",
+		"Отсутствует",
+		"Акция",
+		"Комментарий",
+		"Фото1",
+		"Фото2",
+		"Фото3",
+	}
+	items := [][]string{}
+	for _, it := range completeWares {
+		missing := "Нет"
+		if it.Missing {
+			missing = "Да"
+		}
+		discount := "Нет"
+		if it.Discount {
+			discount = "Да"
+		}
+		row := []string{
+			it.DateUpload.Format(helpers.ISO8601),
+			it.Region,
+			it.RivalCode,
+			it.MonitoringType,
+			it.Rival,
+			it.Rival,
+			fmt.Sprintf("%s %s", it.UserBarcode, it.UserName),
+			it.WorkGroup,
+			fmt.Sprintf("%s %s", it.SegmentCode, it.Segment),
+			it.Code,
+			it.Ware,
+			"0.00",
+			fmt.Sprintf("%.2f", it.Price),
+			fmt.Sprintf("%.2f", it.MaxPrice),
+			missing,
+			discount,
+			it.Comment,
+		}
+		row = append(row, it.Photos...)
+		items = append(items, row)
+	}
+	fileName := fmt.Sprintf(
+		"kkr_report_%s_%s.xlsx",
+		from.Format("01.02.2006"),
+		to.Format("01.02.2006"),
+	)
+	filePath, err := helpers.CreateXLSX(header, items, fileName)
+	subject := fmt.Sprintf("Отчет мониторинга: %s - %s", from.Format("01.02.2006"), to.Format("01.02.2006"))
+	if err != nil {
+		services.SendMail(
+			[]string{user.Email, config.Config.Admin.Email},
+			subject,
+			fmt.Sprintf("Ошибка получения мониторига: %v", err),
+		)
+	} else if count == 0 {
+		services.SendMail(
+			[]string{user.Email},
+			subject,
+			fmt.Sprintf("Нечего выгружать"),
+		)
+	} else {
+		services.SendMail(
+			[]string{user.Email},
+			subject,
+			"",
+			filePath,
+		)
+	}
 }

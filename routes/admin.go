@@ -58,14 +58,24 @@ func RegisterAdminRoutes(r *mux.Router) {
 			Methods: []string{"GET"},
 		},
 		{
-			Path:    "/content-type/create",
+			Path:    "/content-type/{content_type_id:[0-9]+}/create",
 			Handler: admin.CRUDContentType,
 			Methods: []string{"PUT"},
 		},
 		{
-			Path:    "/content-type/{id:[0-9]+}",
+			Path:    "/content-type/{content_type_id:[0-9]+}/{id:[0-9]+}",
 			Handler: admin.CRUDContentType,
 			Methods: []string{"POST", "DELETE"},
+		},
+		{
+			Path:    "/trash-data",
+			Handler: admin.GetTrashData,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/recovery-from-trash",
+			Handler: admin.RecoveryFromTrash,
+			Methods: []string{"POST"},
 		},
 		{
 			Path:    "/media/{name}",
@@ -99,6 +109,12 @@ func RegisterAdminRoutes(r *mux.Router) {
 		{
 			Path:    "/complete-wares",
 			Handler: admin.GetCompletedWares,
+			Access:  models.READ,
+			Methods: []string{"GET"},
+		},
+		{
+			Path:    "/get-report",
+			Handler: admin.GenerateReport,
 			Access:  models.READ,
 			Methods: []string{"GET"},
 		},
