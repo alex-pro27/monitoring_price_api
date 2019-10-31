@@ -102,7 +102,7 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 		if segments != nil {
-			segments = koazee.StreamOf(segments).Sort(func(a, b types.H) int {
+			segments := koazee.StreamOf(segments).Sort(func(a, b types.H) int {
 				return strings.Compare(a["code"].(string), b["code"].(string))
 			}).Out().Val().([]types.H)
 			data = append(data, types.H{

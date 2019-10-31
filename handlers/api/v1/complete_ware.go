@@ -9,6 +9,7 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
+	"github.com/alex-pro27/monitoring_price_api/utils"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"github.com/wesovilabs/koazee"
@@ -17,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -117,6 +119,19 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(w, r, err.Error())
 		return
 	}
+	go func() {
+		newImage, err := os.Open(filePath)
+		defer func() {
+			logger.HandleError(newImage.Close())
+		}()
+		if err == nil {
+			pattern := regexp.MustCompile("^(.*)\\.(jpe?g|png|gif)$")
+			fname := pattern.ReplaceAllString(header.Filename, "${1}_thumb.${2}")
+			logger.HandleError(
+				utils.ResizeImage(newImage, fname, config.Config.Static.MediaRoot, 160, 160, nil),
+			)
+		}
+	}()
 	common.JSONResponse(w, types.H{
 		"error":     false,
 		"url_photo": filePath,

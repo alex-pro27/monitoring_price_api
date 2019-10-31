@@ -10,6 +10,7 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/services"
 	"github.com/alex-pro27/monitoring_price_api/types"
+	"github.com/alex-pro27/monitoring_price_api/utils"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"github.com/otium/queue"
@@ -324,11 +325,11 @@ func sendReportTask(request interface{}) {
 		items = append(items, row)
 	}
 	fileName := fmt.Sprintf(
-		"kkr_report_%s_%s.xlsx",
+		"kkr_report_%s_%s",
 		from.Format("01.02.2006"),
 		to.Format("01.02.2006"),
 	)
-	filePath, err := helpers.CreateXLSX(header, items, fileName)
+	filePath, err := utils.CreateXLSX(header, items, fileName)
 	subject := fmt.Sprintf("Отчет мониторинга: %s - %s", from.Format("01.02.2006"), to.Format("01.02.2006"))
 	if err != nil {
 		services.SendMail(

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
-	"github.com/alex-pro27/monitoring_price_api/helpers"
 	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/types"
+	"github.com/alex-pro27/monitoring_price_api/utils"
 	"github.com/gorilla/context"
 	"github.com/otium/queue"
 	"github.com/tealeg/xlsx"
@@ -37,7 +37,7 @@ func GetTemplateBlank(w http.ResponseWriter, r *http.Request) {
 		"KVI, Первые цены",
 	}
 
-	filePath, err := helpers.CreateXLSX(header, [][]string{example}, "")
+	filePath, err := utils.CreateXLSX(header, [][]string{example}, "")
 	if err != nil {
 		common.ErrorResponse(w, r, err.Error())
 		return
