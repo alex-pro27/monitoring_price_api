@@ -100,7 +100,7 @@ class Commands(object):
                 )
                 try:
                     user_id = cursor.fetchone()[0]
-                except ValueError:
+                except TypeError:
                     user_id = 0
 
                 if user_id:
