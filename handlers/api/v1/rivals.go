@@ -6,9 +6,7 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/types"
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
-	"github.com/wesovilabs/koazee"
 	"net/http"
-	"strings"
 )
 
 /**
@@ -102,9 +100,9 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 		if segments != nil {
-			segments := koazee.StreamOf(segments).Sort(func(a, b types.H) int {
-				return strings.Compare(a["code"].(string), b["code"].(string))
-			}).Out().Val().([]types.H)
+			//segments := koazee.StreamOf(segments).Sort(func(a, b types.H) int {
+			//	return strings.Compare(a["code"].(string), b["code"].(string))
+			//}).Out().Val().([]types.H)
 			data = append(data, types.H{
 				"id":            rival.ID,
 				"name":          rival.Name,

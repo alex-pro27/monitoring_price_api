@@ -332,8 +332,13 @@ func sendReportTask(request interface{}) {
 	filePath, err := utils.CreateXLSX(header, items, fileName)
 	subject := fmt.Sprintf("Отчет мониторинга: %s - %s", from.Format("01.02.2006"), to.Format("01.02.2006"))
 	if err != nil {
+		emails := make([]string, 0, len(config.Config.Admins))
+		for _, admin := range config.Config.Admins {
+			emails = append(emails, admin.Email)
+		}
+		emails = append(emails, user.Email)
 		services.SendMail(
-			[]string{user.Email, config.Config.Admin.Email},
+			emails,
 			subject,
 			fmt.Sprintf("Ошибка получения мониторига: %v", err),
 		)

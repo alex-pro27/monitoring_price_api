@@ -31,5 +31,9 @@ func SendMail(to []string, subject, body string, attach ...string) {
 }
 
 func SendMailToAdmin(subject, body string, attach ...string) {
-	SendMail([]string{config.Config.Admin.Email}, subject, body, attach...)
+	admins := make([]string, 0, len(config.Config.Admins))
+	for _, admin := range config.Config.Admins {
+		admins = append(admins, admin.Email)
+	}
+	SendMail(admins, subject, body, attach...)
 }

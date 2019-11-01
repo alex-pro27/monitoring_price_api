@@ -35,7 +35,7 @@ type TypeConfig struct {
 		MaxAge int    `yaml:"MAX_AGE"`
 	}
 
-	Admin struct {
+	Admins []struct {
 		Name  string `yaml:"NAME"`
 		Email string `yaml:"EMAIL"`
 	}
