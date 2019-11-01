@@ -5,6 +5,7 @@ from __future__ import unicode_literals, print_function
 import datetime
 import os
 import re
+from multiprocessing.pool import ThreadPool
 from subprocess import PIPE, Popen
 
 from PIL import Image
@@ -55,16 +56,23 @@ class Commands(object):
         height = 160
         regex = re.compile('(?!.*_thumb)(.*)\.(jpe?g|png|gif)$')
         regex2 = re.compile('^.*_thumb\.jpe?g$')
+        images = []
         for root, dirs, files in os.walk(image_dir):
             files2 = list(filter(lambda x: regex2.match(x), files))
             for file in filter(lambda x: regex.match(x), files):
                 name = regex.findall(file)[0][0]
                 if not list(filter(lambda x: name in x, files2)):
-                    im1 = Image.open(os.path.join(root, file)).convert('RGB')
-                    im2 = im1.resize((width, height), Image.NEAREST)
-                    path = os.path.join(root, name + "_thumb" + ".jpg")
-                    im2.save(path)
-                    print("Created thumb {}".format(path))
+                    images.append((root, file, name,))
+
+        pool = ThreadPool(processes=20)
+        def resize(val):
+            root, file, name = val
+            im1 = Image.open(os.path.join(root, file)).convert('RGB')
+            im2 = im1.resize((width, height), Image.NEAREST)
+            path = os.path.join(root, name + "_thumb" + ".jpg")
+            im2.save(path)
+            print("Created thumb {}".format(path))
+        pool.map(resize, images)
 
     def create_admins(self):
         conf = self.__get_conf()
