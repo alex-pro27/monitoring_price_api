@@ -9,17 +9,17 @@ import (
 type PermissionAccess int
 
 const (
-	FORBIDDEN PermissionAccess = 0
-	READ      PermissionAccess = 3
-	WRITE     PermissionAccess = 5
-	ACCESS    PermissionAccess = 7
+	FORBIDDEN 	PermissionAccess = 0
+	READ      	PermissionAccess = 3
+	WRITE     	PermissionAccess = 5
+	ACCESS    	PermissionAccess = 7
 )
 
-var PermissionAccessChoices = map[PermissionAccess]string{
-	FORBIDDEN: "Не разрешено",
-	READ:      "Только для чтения",
-	WRITE:     "Доступ на запись",
-	ACCESS:    "Полный доступ (Чтение, Запись, Удаление)",
+var PermissionAccessChoices = map[PermissionAccess]string {
+	FORBIDDEN:	"Не разрешено",
+	READ:      	"Только для чтения",
+	WRITE:     	"Доступ на запись",
+	ACCESS:    	"Полный доступ (Чтение, Запись, Удаление)",
 }
 
 type Permission struct {

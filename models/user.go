@@ -96,7 +96,7 @@ func (user User) CheckPassword(password string) bool {
 }
 
 func (user User) Meta() types.ModelsMeta {
-	return types.ModelsMeta{
+	return types.ModelsMeta {
 		Name:   "Пользователь",
 		Plural: "Пользователи",
 	}

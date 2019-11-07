@@ -128,12 +128,6 @@
   version = "v0.0.4"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/xlab/closer"
-  packages = ["."]
-  revision = "03326addb7c265ee27cd5d5d145362165d8195a8"
-
-[[projects]]
   name = "go.opencensus.io"
   packages = [".","internal","internal/tagencoding","metric/metricdata","metric/metricproducer","plugin/ocgrpc","plugin/ochttp","plugin/ochttp/propagation/b3","resource","stats","stats/internal","stats/view","tag","trace","trace/internal","trace/propagation","trace/tracestate"]
   revision = "df6e2001952312404b06f5f6f03fcb4aec1648e5"
@@ -208,6 +202,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "943f1f56d723c2785476c87de34f108ab5b964914b8046b661a7ca7b4c5a4eb5"
+  inputs-digest = "5796daaae110a3a6cdae91f2f7f6af755d0511b7daf86986b74477bb1cfad8ad"
   solver-name = "gps-cdcl"
   solver-version = 1

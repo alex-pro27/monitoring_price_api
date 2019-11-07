@@ -126,12 +126,12 @@ func taskUpdateMonitoring(args interface{}) {
 		if rec := recover(); rec != nil {
 			tx.Rollback()
 			logger.Logger.Errorf("Error parse product list xls file: %v", rec)
-			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H{
+			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H {
 				"error":   true,
 				"message": fmt.Sprintf("Ошибка обновления мониторинга: %v", rec),
 			})
 		} else {
-			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H{
+			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H {
 				"message": "Мониториг успешно обновлен!",
 			})
 		}

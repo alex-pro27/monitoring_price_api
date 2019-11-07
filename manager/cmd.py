@@ -23,7 +23,6 @@ try:
 except ImportError:
     from scandir import scandir  # use scandir PyPI module on Python < 3.5
 
-
 class Commands(object):
 
     __conf = None
@@ -55,7 +54,7 @@ class Commands(object):
         width = 160
         height = 160
         regex = re.compile('(?!.*_thumb)(.*)\.(jpe?g|png|gif)$')
-        regex2 = re.compile('^.*_thumb\.jpe?g$')
+        regex2 = re.compile('^.*_thumb\.jpg$')
         images = []
         for root, dirs, files in os.walk(image_dir):
             files2 = list(filter(lambda x: regex2.match(x), files))
@@ -64,7 +63,7 @@ class Commands(object):
                 if not list(filter(lambda x: name in x, files2)):
                     images.append((root, file, name,))
 
-        pool = ThreadPool(processes=20)
+        pool = ThreadPool(processes=10)
         def resize(val):
             root, file, name = val
             im1 = Image.open(os.path.join(root, file)).convert('RGB')
@@ -72,7 +71,9 @@ class Commands(object):
             path = os.path.join(root, name + "_thumb" + ".jpg")
             im2.save(path)
             print("Created thumb {}".format(path))
+        print(f"Count: {len(images)}")
         pool.map(resize, images)
+        pool.join()
 
     def create_admins(self):
         conf = self.__get_conf()
@@ -94,6 +95,7 @@ class Commands(object):
             if not login:
                 print("Login cannot be empty:".format(name))
                 continue
+
             password = getpass.getpass("Input password:").encode("ascii")
             confirm_password = getpass.getpass("Confirm password:").encode("ascii")
 
@@ -155,7 +157,9 @@ class Commands(object):
                             last_name = %s,
                             password = %s,
                             email = %s,
-                            token_id = %s
+                            token_id = %s,
+                            updated_at = now(),
+                            deleted_at = NULL
                         WHERE id = %s
                         """,
                         (login, first_name, last_name, password, email, token_id, user_id)

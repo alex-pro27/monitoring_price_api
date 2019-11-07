@@ -120,7 +120,15 @@ func RegisterAdminRoutes(r *mux.Router) {
 		},
 	}
 
-	websockets := []Route{
+	dashboardRoutes := []Route {
+		{
+			Path: 		"/online-users",
+			Handler: 	admin.GetOnlineUsers,
+			Methods:	[]string{"GET"},
+		},
+	}
+
+	websockets := []Route {
 		{
 			Path:    "/ws",
 			Handler: admin.HandleWebsocket,
@@ -133,4 +141,5 @@ func RegisterAdminRoutes(r *mux.Router) {
 	RegisterRoutes(authRouter, contentTypesRoutes, nil)
 	RegisterRoutes(authRouter, monitorinRoutes, models.Monitoring{})
 	RegisterRoutes(authRouter, completeWaresRoutes, models.CompletedWare{})
+	RegisterRoutes(authRouter, dashboardRoutes, nil)
 }

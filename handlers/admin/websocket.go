@@ -129,7 +129,8 @@ func (h *AdminWebSocketHandler) OnClose(clientID int) {
 		db.Save(user)
 		logger.HandleError(h.db.Close())
 		h.EmitAll(token, "client_leaved", map[string]interface{}{
-			"client_name": user.GetFullName(),
+			"user_id": user.ID,
+			"full_name": user.GetFullName(),
 		})
 	}
 }
@@ -143,7 +144,7 @@ func (h *AdminWebSocketHandler) OnConnect(clientID int, message types.H, args ..
 	})
 	if len(h.Users[user.Token.Key]) == 1 {
 		h.EmitAll(user.Token.Key, "client_joined", map[string]interface{}{
-			"client_name": user.GetFullName(),
+			"user": user.Serializer(),
 		})
 	}
 }

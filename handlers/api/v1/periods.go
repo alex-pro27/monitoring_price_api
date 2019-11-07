@@ -16,13 +16,13 @@ func GetPeriods(w http.ResponseWriter, r *http.Request) {
 	db.Preload("Periods").Find(&monitoringTypes)
 	var data []types.H
 	for _, item := range monitoringTypes {
-		if len(item.Periods) > 0 {
+		for _, period := range item.Periods {
 			periodDates := item.Periods[0].GetPeriodDates()
 			start := periodDates.Dates[0].Format(helpers.ISO8601)
 			end := periodDates.Dates[1].Format(helpers.ISO8601)
 			data = append(data, types.H{
-				"id":              item.ID,
-				"period_name":     item.Periods[0].GetPeriodName(),
+				"id":              period.ID,
+				"period_name":     period.GetPeriodName(),
 				"monitoring_name": item.Name,
 				"start":           start,
 				"to":              end,
