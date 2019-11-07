@@ -147,7 +147,7 @@ func (period Period) GetPeriodDates() (currentPeriods CurrentPeriods) {
 		end := period.End
 		start := period.Start
 		if end <= start {
-			if time.Weekday(start) > time.Now().Weekday() {
+			if time.Weekday(end) >= time.Now().Weekday() {
 				start -= 7
 			} else {
 				end += 7
@@ -167,9 +167,14 @@ func (period Period) GetPeriodDates() (currentPeriods CurrentPeriods) {
 		tempDateEnd := beginningMonth.Add(dayDuration*time.Duration(period.End) - 1)
 		if day > period.End {
 			// Если текущий день больше дня окончания мониторинга то выбираем следующий месяц
-			start = beginningMonth.Add(dayDuration * time.Duration(period.Start-1))
-			end = now.EndOfMonth().Add(dayDuration * time.Duration(period.End))
-		} else if tempDateEnd.Sub(prevMonth).Hours() / 24 <= float64(now.EndOfMonth().Day()) || day <= period.End && period.End - period.Start < 8 {
+			endMonth := now.EndOfMonth()
+			start = beginningMonth.Add(dayDuration*time.Duration(period.Start) - 1)
+			end = endMonth.Add(dayDuration * time.Duration(period.End))
+			if end.Unix()-start.Unix() > 31*60*60*24 {
+				start = endMonth.Add(dayDuration * time.Duration(period.Start))
+			}
+		} else if tempDateEnd.Sub(prevMonth).Hours()/24 <= float64(now.EndOfMonth().Day()) ||
+			day <= period.End && period.End-period.Start <= 0 {
 			// Если разница в кол. пройденых дней не превышает или равно кол. дней в пред. месяце
 			// то выбираем предыдущий месяц
 			start = prevMonth
