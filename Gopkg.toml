@@ -94,6 +94,3 @@
   branch = "master"
   name = "github.com/otium/queue"
 
-[[constraint]]
-  name = "cirello.io/supervisor"
-  version = "1.0.3"

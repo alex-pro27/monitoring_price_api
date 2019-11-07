@@ -7,14 +7,15 @@ databases:
     PASSWORD: password
 
 system:
-   DEBUG:        false
-   SERVER:       0.0.0.0:8888
-   SECRET_KEY:   1LF1u'>_pngZp))R|{bQX5&qYV_bcLx3ii&z;a7,;&,2"FeOgM)lvL)yY%>Hpv
-   LOG_PATH:     /home/alex/logs/monitoring_price.log
-   BACKUP_PATH:  /home/alex/backup
-   MEM_PROFILER: /home/alex/logs/monitoring_price.prof
-   PINCODE:      8989
-   SERVER_URL:   http://127.0.0.1:8888
+   DEBUG:               false
+   SERVER:              0.0.0.0:8888
+   SECRET_KEY:          1LF1u'>_pngZp))R|{bQX5&qYV_bcLx3ii&z;a7,;&,2"FeOgM)lvL)yY%>Hpv
+   LOG_PATH:            /home/alex/logs/monitoring_price.log
+   BACKUP_PATH:         /home/alex/backup
+   MEM_PROFILER:        /home/alex/logs/monitoring_price.prof
+   PINCODE:             8989
+   SERVER_URL:          http://127.0.0.1:8888
+   LOCAL_SERVER_URL:    http://127.0.0.1:8888
 
 session:
   KEY:  veHH1VVTeOUkMgubz28kHt5jabRpk0F8

@@ -7,6 +7,8 @@ import (
 	"github.com/gorilla/context"
 	"github.com/jinzhu/gorm"
 	"net/http"
+	"sort"
+	"strconv"
 )
 
 /**
@@ -100,9 +102,14 @@ func GetRivals(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 		if segments != nil {
-			//segments := koazee.StreamOf(segments).Sort(func(a, b types.H) int {
-			//	return strings.Compare(a["code"].(string), b["code"].(string))
-			//}).Out().Val().([]types.H)
+			sort.Slice(segments, func(i, j int) bool {
+				if segments[i] == nil || segments[j] == nil {
+					return false
+				}
+				a, _ := strconv.Atoi(segments[i]["code"].(string))
+				b, _ := strconv.Atoi(segments[j]["code"].(string))
+				return a < b
+			})
 			data = append(data, types.H{
 				"id":            rival.ID,
 				"name":          rival.Name,
