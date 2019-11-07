@@ -21,13 +21,14 @@ type TypeConfig struct {
 	}
 
 	System struct {
-		SecretKey   string `yaml:"SECRET_KEY"`
-		Debug       bool   `yaml:"DEBUG"`
-		Server      string `yaml:"SERVER"`
-		LogPath     string `yaml:"LOG_PATH"`
-		PinCode     string `yaml:"PINCODE"`
-		ServerUrl   string `yaml:"SERVER_URL"`
-		MemProfiler string `yaml:"MEM_PROFILER"`
+		SecretKey      string `yaml:"SECRET_KEY"`
+		Debug          bool   `yaml:"DEBUG"`
+		Server         string `yaml:"SERVER"`
+		LogPath        string `yaml:"LOG_PATH"`
+		PinCode        string `yaml:"PINCODE"`
+		ServerUrl      string `yaml:"SERVER_URL"`
+		LocalServerUrl string `yaml:"LOCAL_SERVER_URL"`
+		MemProfiler    string `yaml:"MEM_PROFILER"`
 	}
 
 	Session struct {

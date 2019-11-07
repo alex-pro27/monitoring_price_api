@@ -244,7 +244,7 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 func GenerateReport(w http.ResponseWriter, r *http.Request) {
 	user := context.Get(r, "user").(*models.User)
 	if user.Email == "" {
-		common.ErrorResponse(w, r, "Нет email адресса для отправки")
+		common.ErrorResponse(w, r, "Нет email адреса для отправки")
 	}
 	q := queue.NewQueue(sendReportTask, 1)
 	q.Push(r)
@@ -263,7 +263,7 @@ func sendReportTask(request interface{}) {
 	completeWares, count := getCompleteWares(
 		r,
 		func(path string) string {
-			return config.Config.System.ServerUrl + "/api/monitoring/media/" + path
+			return config.Config.System.LocalServerUrl + "/api/monitoring/local/media/" + path
 		},
 		0,
 	)

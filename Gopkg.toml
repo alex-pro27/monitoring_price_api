@@ -93,3 +93,4 @@
 [[constraint]]
   branch = "master"
   name = "github.com/otium/queue"
+

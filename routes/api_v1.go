@@ -25,6 +25,11 @@ func RegisterApiV1Routes(r *mux.Router) {
 			Handler: v1.CheckPin,
 			Methods: []string{"POST"},
 		},
+		{
+			Path:    "/local/media/{name}",
+			Handler: common.FileResponse,
+			Methods: []string{"GET"},
+		},
 	}
 	apiRoutes := []Route{
 		{

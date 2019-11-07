@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/alex-pro27/monitoring_price_api/config"
 	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
@@ -8,9 +9,9 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/middleware"
 	"github.com/alex-pro27/monitoring_price_api/routes"
 	"github.com/gorilla/mux"
-	"github.com/xlab/closer"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/pprof"
 )
@@ -35,22 +36,24 @@ func Init() {
 }
 
 func StartServer() {
+	runtime.GC()
+	defer func() {
+		fmt.Println("Server closed")
+		memProfile, _ := os.Create(config.Config.System.MemProfiler)
+		logger.HandleError(pprof.WriteHeapProfile(memProfile))
+		logger.HandleError(memProfile.Close())
+	}()
 	logger.Logger.Infof("Server started: %s", config.Config.System.Server)
 	logger.HandleError(Server.ListenAndServe())
-	closer.Close()
-}
-
-func CloseServer() {
-	logger.HandleError(Server.Close())
-	memProfile, _ := os.Create(config.Config.System.MemProfiler)
-	logger.HandleError(pprof.WriteHeapProfile(memProfile))
-	defer logger.HandleError(memProfile.Close())
 }
 
 func main() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		_ = Server.Close()
+	}()
 	Init()
-	runtime.GC()
-	closer.Bind(CloseServer)
-	go StartServer()
-	closer.Hold()
+	StartServer()
 }
