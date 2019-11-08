@@ -147,15 +147,21 @@ func (period Period) GetPeriodDates() (currentPeriods CurrentPeriods) {
 		end := period.End
 		start := period.Start
 		if end <= start {
-			if time.Weekday(end) >= time.Now().Weekday() {
+			if time.Weekday(start) >= time.Now().Weekday() {
 				start -= 7
 			} else {
 				end += 7
 			}
 		}
+		startWeek := date.AddDate(0, 0, start-1)
+		endWeek := date.AddDate(0, 0, end-1)
+		if endWeek.Before(time.Date(year, month, day, 0, 0, 0, 0, time.Local)) {
+			startWeek = startWeek.AddDate(0, 0, 7)
+			endWeek = endWeek.AddDate(0, 0, 7)
+		}
 		currentPeriods.Dates = []time.Time{
-			date.AddDate(0, 0, start-1),
-			date.AddDate(0, 0, end-1),
+			startWeek,
+			endWeek,
 		}
 		break
 	case PERIOD_MONTH:
