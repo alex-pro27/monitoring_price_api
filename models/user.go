@@ -96,7 +96,7 @@ func (user User) CheckPassword(password string) bool {
 }
 
 func (user User) Meta() types.ModelsMeta {
-	return types.ModelsMeta {
+	return types.ModelsMeta{
 		Name:   "Пользователь",
 		Plural: "Пользователи",
 	}
@@ -137,12 +137,19 @@ func (user *User) Manager(db *gorm.DB) *UserManager {
 func (user User) Serializer() types.H {
 	roles := make([]types.H, 0)
 	workGroups := make([]types.H, 0)
+	monitorings := make([]types.H, 0)
 
 	for _, role := range user.Roles {
 		roles = append(roles, role.Serializer())
 	}
 	for _, wg := range user.WorkGroups {
 		workGroups = append(workGroups, wg.Serializer())
+		for _, m := range wg.Monitorings {
+			monitorings = append(monitorings, types.H{
+				"id":   m.ID,
+				"name": m.Name,
+			})
+		}
 	}
 	return types.H{
 		"id":            user.ID,
@@ -155,7 +162,8 @@ func (user User) Serializer() types.H {
 		"roles":         roles,
 		"phone":         user.Phone,
 		"active":        user.Active,
-		"monitorings":   workGroups,
+		"work_groups":   workGroups,
+		"monitorings":   monitorings,
 		"is_super_user": user.IsSuperUser,
 	}
 }
