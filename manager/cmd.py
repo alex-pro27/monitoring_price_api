@@ -71,7 +71,7 @@ class Commands(object):
             path = os.path.join(root, name + "_thumb" + ".jpg")
             im2.save(path)
             print("Created thumb {}".format(path))
-        print(f"Count: {len(images)}")
+        print("Count: {}".format(len(images)))
         pool.map(resize, images)
         pool.join()
 
