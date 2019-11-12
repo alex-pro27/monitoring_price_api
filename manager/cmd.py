@@ -73,7 +73,6 @@ class Commands(object):
             print("Created thumb {}".format(path))
         print("Count: {}".format(len(images)))
         pool.map(resize, images)
-        pool.join()
 
     def create_admins(self):
         conf = self.__get_conf()
