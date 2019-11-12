@@ -257,7 +257,7 @@ func taskUpdateMonitoring(args interface{}) {
 		notSegment := segment.ID == 0
 		segment.Name = _ware["segment"].(string)
 		segment.Code = _ware["segment_code"].(string)
-		if err := tx.Save(segment).Error; err != nil {
+		if err := tx.Save(&segment).Error; err != nil {
 			panic(fmt.Sprintf("Не удалось добавить сегмент: %s %s, %s", segment.Name, segment.Code, err))
 		} else if notSegment {
 			segments[_ware["segment_code"].(string)] = segment
