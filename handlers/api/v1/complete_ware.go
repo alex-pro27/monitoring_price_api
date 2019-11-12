@@ -130,6 +130,8 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 			logger.HandleError(
 				utils.ResizeImage(newImage, fname, config.Config.Static.MediaRoot, 160, 160, nil),
 			)
+		} else {
+			logger.HandleError(err)
 		}
 	}()
 	common.JSONResponse(w, types.H{
