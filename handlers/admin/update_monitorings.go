@@ -126,12 +126,12 @@ func taskUpdateMonitoring(args interface{}) {
 		if rec := recover(); rec != nil {
 			tx.Rollback()
 			logger.Logger.Errorf("Error parse product list xls file: %v", rec)
-			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H {
+			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H{
 				"error":   true,
 				"message": fmt.Sprintf("Ошибка обновления мониторинга: %v", rec),
 			})
 		} else {
-			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H {
+			AdminWebSocket.Emit(user.Token.Key, "update_products", types.H{
 				"message": "Мониториг успешно обновлен!",
 			})
 		}
@@ -255,21 +255,18 @@ func taskUpdateMonitoring(args interface{}) {
 		segment := segments[_ware["segment_code"].(string)]
 		if segment == nil {
 			segment = new(models.Segment)
-			segment.Name = _ware["segment"].(string)
-			segment.Code = _ware["segment_code"].(string)
-			if err := tx.Save(segment).Error; err != nil {
-				panic(fmt.Sprintf("Не удалось добавить сегмент: %s %s, %s", segment.Name, segment.Code, err))
-			}
 		}
-		if ware.ID == 0 {
-			ware = models.Ware{}
-			ware.Code = _code
-			ware.Name = _ware["name"].(string)
-			ware.Barcode = _ware["barcode"].(string)
-			ware.SegmentId = segment.ID
-			if err := tx.Save(&ware).Error; err != nil {
-				panic(fmt.Sprintf("Не удалось добавить товар: %s %s, %v", _code, _ware["name"], err))
-			}
+		segment.Name = _ware["segment"].(string)
+		segment.Code = _ware["segment_code"].(string)
+		if err := tx.Save(segment).Error; err != nil {
+			panic(fmt.Sprintf("Не удалось добавить сегмент: %s %s, %s", segment.Name, segment.Code, err))
+		}
+		ware.Code = _code
+		ware.Name = _ware["name"].(string)
+		ware.Barcode = _ware["barcode"].(string)
+		ware.SegmentId = segment.ID
+		if err := tx.Save(&ware).Error; err != nil {
+			panic(fmt.Sprintf("Не удалось добавить товар: %s %s, %v", _code, _ware["name"], err))
 		}
 
 		for _, mt := range monitoringTypes {
