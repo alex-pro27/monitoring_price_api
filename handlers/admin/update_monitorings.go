@@ -211,11 +211,11 @@ func taskUpdateMonitoring(args interface{}) {
 	}
 
 	__segments := make([]models.Segment, 0)
-	segments := make(map[string]*models.Segment, 0)
+	segments := make(map[string]models.Segment, 0)
 	tx.Find(&__segments, "code IN (?)", segmentsCodes)
 
 	for _, s := range __segments {
-		segments[s.Code] = &s
+		segments[s.Code] = s
 	}
 
 	waresByMonitoringTypes := make(map[uint][]models.Ware)
@@ -252,21 +252,25 @@ func taskUpdateMonitoring(args interface{}) {
 
 	for _code, _ware := range _wares {
 		ware := wares[_code]
+		notWare := ware.ID == 0
 		segment := segments[_ware["segment_code"].(string)]
-		if segment == nil {
-			segment = new(models.Segment)
-		}
+		notSegment := segment.ID == 0
 		segment.Name = _ware["segment"].(string)
 		segment.Code = _ware["segment_code"].(string)
 		if err := tx.Save(segment).Error; err != nil {
 			panic(fmt.Sprintf("Не удалось добавить сегмент: %s %s, %s", segment.Name, segment.Code, err))
+		} else if notSegment {
+			segments[_ware["segment_code"].(string)] = segment
 		}
+
 		ware.Code = _code
 		ware.Name = _ware["name"].(string)
 		ware.Barcode = _ware["barcode"].(string)
 		ware.SegmentId = segment.ID
 		if err := tx.Save(&ware).Error; err != nil {
 			panic(fmt.Sprintf("Не удалось добавить товар: %s %s, %v", _code, _ware["name"], err))
+		} else if notWare {
+			wares[_code] = ware
 		}
 
 		for _, mt := range monitoringTypes {
@@ -280,7 +284,6 @@ func taskUpdateMonitoring(args interface{}) {
 			}
 		}
 	}
-
 	var monitorings []models.Monitoring
 	tx.Preload("Wares").Select("DISTINCT monitorings.*").Joins(
 		"INNER JOIN monitoring_types mt ON mt.id = monitoring_type_id",
