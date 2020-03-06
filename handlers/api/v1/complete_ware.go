@@ -143,6 +143,12 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 	from, _ := time.Parse("2006-01-02", r.FormValue("from"))
 	to, _ := time.Parse("2006-01-02", r.FormValue("to"))
+	limit, _ := strconv.Atoi(r.FormValue("length"))
+	if limit > 2000 {
+		limit = 2000
+	} else if limit < 250 {
+		limit = 250
+	}
 	if from.IsZero() {
 		from = time.Now()
 	}
@@ -161,7 +167,6 @@ func GetCompletedWares(w http.ResponseWriter, r *http.Request) {
 			return x > 0
 		}).RemoveDuplicates().Out().Val().([]int)
 	}
-	limit := 250
 	page, _ := strconv.Atoi(r.FormValue("page"))
 	start := page*limit - limit
 	db := context.Get(r, "DB").(*gorm.DB)
