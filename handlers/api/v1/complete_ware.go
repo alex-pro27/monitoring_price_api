@@ -19,6 +19,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -102,13 +103,19 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		common.ErrorResponse(w, r, err.Error())
 		return
 	}
+	defer func() {
+		if photo != nil {
+			logger.HandleError(photo.Close())
+		}
+	}()
 
 	filePath := path.Join(config.Config.Static.MediaRoot, header.Filename)
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
 
 	defer func() {
-		logger.HandleError(photo.Close())
-		logger.HandleError(f.Close())
+		if f != nil {
+			logger.HandleError(f.Close())
+		}
 	}()
 
 	if err != nil {
@@ -133,6 +140,7 @@ func UploadPhoto(w http.ResponseWriter, r *http.Request) {
 		} else {
 			logger.HandleError(err)
 		}
+		runtime.GC()
 	}()
 	common.JSONResponse(w, types.H{
 		"error":     false,

@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"runtime/pprof"
 )
 
 var Server *http.Server
@@ -39,9 +38,12 @@ func StartServer() {
 	runtime.GC()
 	defer func() {
 		fmt.Println("Server closed")
-		memProfile, _ := os.Create(config.Config.System.MemProfiler)
-		logger.HandleError(pprof.WriteHeapProfile(memProfile))
-		logger.HandleError(memProfile.Close())
+		//memProfile, _ := os.Create(config.Config.System.MemProfiler)
+		//logger.HandleError(pprof.WriteHeapProfile(memProfile))
+		//logger.HandleError(memProfile.Close())
+		if databases.DB != nil {
+			logger.HandleError(databases.DB.Close())
+		}
 	}()
 	logger.Logger.Infof("Server started: %s", config.Config.System.Server)
 	logger.HandleError(Server.ListenAndServe())
