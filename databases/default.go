@@ -28,23 +28,27 @@ var DefaultModels = []interface{}{
 	models.ContentType{},
 }
 
-func ConnectDefaultDB() *gorm.DB {
-	dbConf := config.Config.Databases.Default
-	params := fmt.Sprintf(
-		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
-		dbConf.Host,
-		dbConf.Port,
-		dbConf.User,
-		dbConf.Database,
-		dbConf.Password,
-	)
-	db, err := gorm.Open("postgres", params)
-	logger.HandleError(err)
-	if config.Config.System.Debug {
-		db.LogMode(true)
-	}
+var DB *gorm.DB
 
-	return db
+func ConnectDefaultDB() *gorm.DB {
+	if DB == nil {
+		var err error
+		dbConf := config.Config.Databases.Default
+		params := fmt.Sprintf(
+			"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+			dbConf.Host,
+			dbConf.Port,
+			dbConf.User,
+			dbConf.Database,
+			dbConf.Password,
+		)
+		DB, err = gorm.Open("postgres", params)
+		logger.HandleError(err)
+		if config.Config.System.Debug {
+			DB.LogMode(true)
+		}
+	}
+	return DB
 }
 
 func FindModelByContentType(db *gorm.DB, contentType string) interface{} {
@@ -99,12 +103,12 @@ func MigrateDefaultDB() {
 	db.Table("monitoring_shops_segments").AddForeignKey("segment_id", "segments(id)", "CASCADE", "CASCADE")
 	db.Table("monitoring_shops_segments").AddForeignKey("monitoring_shop_id", "monitoring_shops(id)", "CASCADE", "CASCADE")
 
+	tx := db.Begin()
 	for _, model := range DefaultModels {
-		tableName := db.NewScope(model).GetModelStruct().TableName(db)
-		db.FirstOrCreate(new(models.ContentType), models.ContentType{
+		tableName := tx.NewScope(model).GetModelStruct().TableName(tx)
+		tx.FirstOrCreate(new(models.ContentType), models.ContentType{
 			Table: tableName,
 		})
 	}
-
-	logger.HandleError(db.Close())
+	tx.Commit()
 }

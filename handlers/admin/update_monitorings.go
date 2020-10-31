@@ -135,7 +135,6 @@ func taskUpdateMonitoring(args interface{}) {
 				"message": "Мониториг успешно обновлен!",
 			})
 		}
-		logger.HandleError(db.Close())
 	}()
 
 	wareCodes := make([]string, 0)

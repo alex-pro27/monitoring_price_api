@@ -6,7 +6,6 @@ import (
 	"github.com/alex-pro27/monitoring_price_api/databases"
 	"github.com/alex-pro27/monitoring_price_api/handlers/common"
 	"github.com/alex-pro27/monitoring_price_api/helpers"
-	"github.com/alex-pro27/monitoring_price_api/logger"
 	"github.com/alex-pro27/monitoring_price_api/models"
 	"github.com/alex-pro27/monitoring_price_api/services"
 	"github.com/alex-pro27/monitoring_price_api/types"
@@ -257,9 +256,6 @@ func sendReportTask(request interface{}) {
 	r := request.(*http.Request)
 	db := databases.ConnectDefaultDB()
 	context.Set(r, "DB", db)
-	defer func() {
-		logger.HandleError(db.Close())
-	}()
 	completeWares, count := getCompleteWares(
 		r,
 		func(path string) string {

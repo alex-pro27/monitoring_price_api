@@ -41,7 +41,6 @@ func (h *AdminWebSocketHandler) Init(server *common.WebSocket) {
 			return func(clientID int, message types.H, args ...interface{}) {
 				h.db = databases.ConnectDefaultDB()
 				f(clientID, message)
-				logger.HandleError(h.db.Close())
 			}
 		},
 		/**Check user*/
@@ -127,9 +126,8 @@ func (h *AdminWebSocketHandler) OnClose(clientID int) {
 		user.Manager(db).GetUserByToken(token)
 		user.Online = false
 		db.Save(user)
-		logger.HandleError(h.db.Close())
 		h.EmitAll(token, "client_leaved", map[string]interface{}{
-			"user_id": user.ID,
+			"user_id":   user.ID,
 			"full_name": user.GetFullName(),
 		})
 	}
